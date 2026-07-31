@@ -1,0 +1,74 @@
+services:
+  caddy:
+    image: caddy:2
+    container_name: evolution_caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - EVOLUTION_DOMAIN=${EVOLUTION_DOMAIN}
+      - CADDY_EMAIL=${CADDY_EMAIL}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - evolution-net
+
+  api:
+    image: evoapicloud/evolution-api:latest
+    container_name: evolution_api
+    restart: always
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      - SERVER_URL=https://${EVOLUTION_DOMAIN}
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DATABASE}?schema=evolution_api
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379/6
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - evolution-net
+    # Sem "ports:" de propósito — só é alcançável via Caddy (TLS), nunca direto.
+    expose:
+      - "8080"
+
+  redis:
+    image: redis:latest
+    container_name: evolution_redis
+    restart: always
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - evolution_redis:/data
+    networks:
+      - evolution-net
+
+  postgres:
+    image: postgres:15
+    container_name: evolution_postgres
+    restart: always
+    environment:
+      - POSTGRES_DB=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    command: ["postgres", "-c", "max_connections=1000"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - evolution-net
+
+volumes:
+  evolution_instances:
+  evolution_redis:
+  postgres_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  evolution-net:
+    driver: bridge
