@@ -51,7 +51,11 @@ export async function createEvolutionInstance(
         qrcode: true,
         webhook: {
           url: webhookUrl,
-          base64: true,
+          // false: mídia (áudio, etc.) não vem embutida em base64 no payload
+          // do webhook — payloads grandes estouravam o limite de corpo do
+          // Vercel Functions (413) e a mensagem nunca chegava ao agente. O
+          // webhook busca a mídia à parte via fetchEvolutionMediaBase64.
+          base64: false,
           headers: { "x-webhook-secret": process.env.EVOLUTION_WEBHOOK_SECRET ?? "" },
           events: ["qrcode.updated", "connection.update", "messages.upsert"],
         },

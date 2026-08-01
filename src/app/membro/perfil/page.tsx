@@ -10,10 +10,10 @@ export default async function MembroPerfilPage() {
   const user = await requireMembro();
   const supabase = await createClient();
 
-  const { data: config } = await supabase
-    .from("configuracoes_gerais")
-    .select("link_recrutamento_padrao, link_energia_padrao")
-    .limit(1)
+  const { data: membro } = await supabase
+    .from("membros")
+    .select("link_recrutamento, link_energia")
+    .eq("usuario_id", user.id)
     .single();
 
   const initials = (user.email ?? "?").slice(0, 2).toUpperCase();
@@ -43,12 +43,12 @@ export default async function MembroPerfilPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Plataforma</CardTitle>
-            <CardDescription>Links padrão usados pela consultoria.</CardDescription>
+            <CardDescription>Seus links pessoais de cadastro.</CardDescription>
           </CardHeader>
           <CardContent>
             <PlataformaForm
-              linkRecrutamentoPadrao={config?.link_recrutamento_padrao ?? ""}
-              linkEnergiaPadrao={config?.link_energia_padrao ?? ""}
+              linkRecrutamento={membro?.link_recrutamento ?? ""}
+              linkEnergia={membro?.link_energia ?? ""}
             />
           </CardContent>
         </Card>

@@ -26,8 +26,10 @@ export type Database = {
           id: string
           is_followup: boolean
           membro_id: string
+          processado: boolean
           remetente: Database["public"]["Enums"]["mensagem_remetente"]
           telefone_lead: string
+          whatsapp_message_id: string | null
         }
         Insert: {
           conteudo: string
@@ -35,8 +37,10 @@ export type Database = {
           id?: string
           is_followup?: boolean
           membro_id: string
+          processado?: boolean
           remetente: Database["public"]["Enums"]["mensagem_remetente"]
           telefone_lead: string
+          whatsapp_message_id?: string | null
         }
         Update: {
           conteudo?: string
@@ -44,8 +48,10 @@ export type Database = {
           id?: string
           is_followup?: boolean
           membro_id?: string
+          processado?: boolean
           remetente?: Database["public"]["Enums"]["mensagem_remetente"]
           telefone_lead?: string
+          whatsapp_message_id?: string | null
         }
         Relationships: [
           {

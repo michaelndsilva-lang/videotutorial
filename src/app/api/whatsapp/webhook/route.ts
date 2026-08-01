@@ -113,57 +113,118 @@ export async function POST(request: Request) {
 
         const telefoneLead = normalizeTelefone(key.remoteJid.split("@")[0]);
 
-        const { data: historicoRows } = await supabase
+        // Idempotência: se essa mensagem já foi respondida numa entrega anterior
+        // do webhook (ver catch abaixo), não reprocessa nem duplica.
+        const { data: leadExistente } = await supabase
           .from("agente_mensagens")
-          .select("remetente, conteudo")
+          .select("id, processado")
           .eq("membro_id", session.membro_id)
           .eq("telefone_lead", telefoneLead)
-          .order("created_at", { ascending: false })
-          .limit(20);
-        const historico = (historicoRows ?? []).reverse();
+          .eq("whatsapp_message_id", key.id)
+          .maybeSingle();
 
-        await supabase.from("agente_mensagens").insert({
-          membro_id: session.membro_id,
-          telefone_lead: telefoneLead,
-          remetente: "lead",
-          conteudo: texto,
-        });
+        if (leadExistente?.processado) break; // já respondida numa tentativa anterior
 
-        const { data: membro } = await supabase
-          .from("membros")
-          .select("modo_agente_ativo, nome_agente")
-          .eq("usuario_id", session.membro_id)
-          .single();
-        const modo = membro?.modo_agente_ativo ?? "recrutamento";
+        try {
+          const { data: historicoRows } = await supabase
+            .from("agente_mensagens")
+            .select("id, remetente, conteudo")
+            .eq("membro_id", session.membro_id)
+            .eq("telefone_lead", telefoneLead)
+            .order("created_at", { ascending: false })
+            .limit(20);
+          const historico = (historicoRows ?? [])
+            .filter((m) => m.id !== leadExistente?.id)
+            .reverse();
 
-        const { data: config } = await supabase
-          .from("agentes_config")
-          .select("prompt_sistema")
-          .eq("modo", modo)
-          .single();
+          let leadRowId = leadExistente?.id;
+          if (!leadRowId) {
+            const { data: inserted } = await supabase
+              .from("agente_mensagens")
+              .insert({
+                membro_id: session.membro_id,
+                telefone_lead: telefoneLead,
+                remetente: "lead",
+                conteudo: texto,
+                whatsapp_message_id: key.id,
+                processado: false,
+              })
+              .select("id")
+              .single();
+            leadRowId = inserted?.id;
+          }
 
-        const resposta = await gerarRespostaAgente({
-          promptSistema: config?.prompt_sistema ?? "",
-          nomeAgente: membro?.nome_agente,
-          historico,
-          mensagemAtual: texto,
-        });
+          const { data: membro } = await supabase
+            .from("membros")
+            .select("modo_agente_ativo, nome_agente, link_recrutamento, link_energia")
+            .eq("usuario_id", session.membro_id)
+            .single();
+          const modo = membro?.modo_agente_ativo ?? "recrutamento";
 
-        await supabase.from("agente_mensagens").insert({
-          membro_id: session.membro_id,
-          telefone_lead: telefoneLead,
-          remetente: "agente",
-          conteudo: resposta,
-        });
+          const { data: config } = await supabase
+            .from("agentes_config")
+            .select("prompt_sistema")
+            .eq("modo", modo)
+            .single();
 
-        await sendEvolutionText(payload.instance, telefoneLead, resposta);
+          // Cada membro tem seu próprio link de cadastro/referral (Perfil >
+          // Plataforma, "Seu link — Recrutamento/Energia", em membros) — leads
+          // precisam ser atribuídos ao consultor certo, não a um link único
+          // pra toda a consultoria. Se o membro ainda não configurou o dele,
+          // cai pro link padrão da consultoria (configuracoes_gerais) como
+          // fallback, em vez de deixar sem link nenhum.
+          const linkPessoal = modo === "energia" ? membro?.link_energia : membro?.link_recrutamento;
+          let linkCadastro = linkPessoal;
+          if (!linkCadastro) {
+            const { data: configuracoes } = await supabase
+              .from("configuracoes_gerais")
+              .select("link_recrutamento_padrao, link_energia_padrao")
+              .limit(1)
+              .single();
+            linkCadastro =
+              modo === "energia"
+                ? configuracoes?.link_energia_padrao
+                : configuracoes?.link_recrutamento_padrao;
+          }
 
-        await upsertLeadCard(supabase, {
-          membroId: session.membro_id,
-          modo,
-          telefone: telefoneLead,
-          nomeLead: pushName || telefoneLead,
-        });
+          const resposta = await gerarRespostaAgente({
+            promptSistema: config?.prompt_sistema ?? "",
+            nomeAgente: membro?.nome_agente,
+            linkCadastro,
+            historico,
+            mensagemAtual: texto,
+          });
+
+          await sendEvolutionText(payload.instance, telefoneLead, resposta);
+
+          await supabase.from("agente_mensagens").insert({
+            membro_id: session.membro_id,
+            telefone_lead: telefoneLead,
+            remetente: "agente",
+            conteudo: resposta,
+          });
+
+          if (leadRowId) {
+            await supabase.from("agente_mensagens").update({ processado: true }).eq("id", leadRowId);
+          }
+
+          await upsertLeadCard(supabase, {
+            membroId: session.membro_id,
+            modo,
+            telefone: telefoneLead,
+            nomeLead: pushName || telefoneLead,
+          });
+        } catch (err) {
+          // Diferente dos outros eventos: aqui devolvemos erro de propósito.
+          // Uma conversa não pode simplesmente parar por causa de uma falha
+          // transiente (rate limit do provider de IA, timeout, etc.) — a
+          // Evolution reentrega webhooks com falha automaticamente (com
+          // backoff, até 10 tentativas ao longo de vários minutos), e como a
+          // mensagem do lead já foi salva com `processado: false`, o reprocessamento
+          // retoma do ponto certo sem duplicar nada.
+          console.error("Falha ao gerar/enviar resposta do agente:", err);
+          return new Response("erro ao processar mensagem", { status: 500 });
+        }
 
         break;
       }
