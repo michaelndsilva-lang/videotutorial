@@ -72,11 +72,68 @@ export async function gerarRespostaAgente({
   // invalida explicitamente qualquer link diferente visto no histórico.
   // Esta instrução é só sobre o link de cadastro/referral pessoal — o prompt
   // mestre também manda vídeos tutoriais e links de catálogo em outras
-  // situações (ex.: tutorial de primeiro pedido). Sem a ressalva abaixo, o
-  // forte reforço deste lembrete (repetido no final do prompt) fazia o
-  // modelo confundir pedidos de "vídeo/tutorial" com pedido do link de
-  // cadastro e mandar o link errado no lugar do vídeo.
-  const ressalvaOutrosLinks = `Esta instrução vale APENAS para quando o lead pedir o "link de cadastro" (o link de inscrição/referral pessoal para se tornar consultor). Se o prompt acima indicar vídeos tutoriais, links de catálogo ou qualquer outra URL específica para outras situações (ex.: tutorial de como fazer o primeiro pedido), use a URL exata indicada para aquele caso — NÃO substitua por este link de cadastro.`;
+  // situações (ex.: tutorial de primeiro pedido, pedido de catálogo). Sem a
+  // ressalva abaixo, o forte reforço deste lembrete (repetido no final do
+  // prompt) fazia o modelo confundir qualquer pedido "link-shaped" — vídeo
+  // tutorial, catálogo — com pedido do link de cadastro, e mandar o link
+  // errado no lugar do que o lead realmente pediu.
+  const ressalvaOutrosLinks = `Esta instrução vale APENAS quando o lead demonstra interesse REAL em se cadastrar/se tornar consultor(a) da Atlantica Natural — por exemplo, quando ele pede explicitamente o "link de cadastro" ou "link de inscrição", diz que quer se cadastrar, quer virar consultor(a)/revendedor(a), ou pergunta como começar a vender. NÃO envie o link de cadastro por padrão só porque o lead mencionou a palavra "link" ou pediu algo relacionado ao negócio.
+
+Em especial:
+- Se o lead pedir o CATÁLOGO de produtos (quer ver produtos, preços, o que vocês vendem), envie o catálogo conforme instruído no prompt acima — NUNCA o link de cadastro.
+- Se o prompt acima indicar vídeos tutoriais ou qualquer outra URL específica para outras situações (ex.: tutorial de como fazer o primeiro pedido), use a URL exata indicada para aquele caso — NÃO substitua pelo link de cadastro.
+- Se não estiver claro se o lead quer se cadastrar ou só está pedindo informação/catálogo, NÃO envie o link de cadastro nesta resposta — responda a pergunta dele normalmente.`;
+
+  // Contexto de data/hora: sem isso o modelo não tem noção de "hoje" e erra
+  // sistematicamente ao calcular "amanhã", "depois de amanhã" ou o dia da
+  // semana ao agendar reuniões. Testado na prática: só informar "hoje é
+  // sábado, 15/08" NÃO basta — modelos mais fracos (ex.: fallback
+  // gemini-2.5-flash-lite quando o modelo principal está indisponível)
+  // seguem errando a aritmética de "+1 dia" e respondem um dia da semana
+  // que não bate com a data (ex.: chamam 16/08/2026, que é domingo, de
+  // "sexta-feira" — e ainda agendam reunião num domingo, o que o prompt
+  // mestre proíbe). Por isso, em vez de pedir pro modelo somar dias de
+  // cabeça, a tabela com hoje + os próximos dias já vem pronta calculada
+  // no código (fuso de Brasília) — o modelo só precisa copiar da tabela,
+  // nunca calcular.
+  const agora = new Date();
+  const fusoHorario = "America/Sao_Paulo";
+  const hojeISO = new Intl.DateTimeFormat("en-CA", {
+    timeZone: fusoHorario,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(agora);
+  const hojeMeiaNoiteUTC = new Date(`${hojeISO}T00:00:00Z`);
+  const rotulos = ["hoje", "amanhã", "depois de amanhã"];
+  const formatadorDia = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "UTC",
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  const proximosDias = Array.from({ length: 7 }, (_, i) => {
+    const data = new Date(hojeMeiaNoiteUTC.getTime() + i * 86_400_000);
+    const formatada = formatadorDia.format(data);
+    const rotulo = rotulos[i] ? ` (${rotulos[i]})` : "";
+    return `- ${formatada}${rotulo}`;
+  }).join("\n");
+  const horaAtualFormatada = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: fusoHorario,
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(agora);
+  const instrucaoData = `Data e hora atuais (horário de Brasília): agora são ${horaAtualFormatada}. Calendário dos próximos dias, já calculado — use exatamente estes dias da semana, NUNCA calcule por conta própria:
+${proximosDias}
+
+Sempre que for mencionar, sugerir ou confirmar QUALQUER data (ex.: "amanhã", "depois de amanhã", "sexta-feira que vem", agendar uma reunião, etc.), copie o dia da semana e a data diretamente da tabela acima em vez de fazer contas de cabeça. Nunca invente ou "chute" um dia da semana que não esteja na tabela. Lembre-se também da regra de agendamento do prompt acima (nunca aos domingos, se aplicável) ao escolher qual dia da tabela sugerir.`;
+
+  // Regra de engajamento: toda resposta ao lead deve terminar incentivando
+  // ele a responder, para a conversa não morrer. Fica no código (não só no
+  // prompt_sistema editável pelo admin) para valer sempre, independente do
+  // que estiver configurado na tela de agentes.
+  const instrucaoPerguntaProvocativa = `Termine TODA resposta a um lead com uma pergunta provocativa, curta e genuína, relacionada ao que acabou de ser conversado — o objetivo é estimular o lead a responder e manter a conversa em andamento. A pergunta deve soar natural, não robótica nem repetitiva de mensagem pra mensagem. Use bom senso: não force uma pergunta se ela soar deslocada (ex.: o lead pediu explicitamente para parar de falar, ou a resposta já termina em pergunta).`;
 
   const instrucaoLink = linkCadastro
     ? `Seu link de cadastro pessoal (use exatamente esta URL, sem alterar nenhum caractere, sempre que for enviar o "link de cadastro" ao lead):\n${linkCadastro}\n\nIMPORTANTE: qualquer URL diferente desta que apareça no histórico da conversa acima estava ERRADA — nunca repita um link diferente do especificado aqui. Além disso, o histórico usa o texto "${MARCADOR_LINK_REDIGIDO}" no lugar de links já enviados; isso é apenas uma nota interna sua, NUNCA copie esse texto entre parênteses pro lead — sempre escreva a URL completa acima quando for mencionar o link.\n\n${ressalvaOutrosLinks}`
@@ -86,7 +143,10 @@ export async function gerarRespostaAgente({
     nomeAgente
       ? `Seu nome nesta conversa é ${nomeAgente}. Apresente-se e se refira a si mesmo por esse nome quando fizer sentido.\n\n${promptSistema}`
       : promptSistema,
+    `---\n\n${instrucaoData}`,
+    `---\n\n${instrucaoPerguntaProvocativa}`,
     `---\n\n${instrucaoLink}`,
+    `---\n\nLembrete final antes de responder: ${instrucaoData}`,
     `---\n\nLembrete final antes de responder: ${instrucaoLink}`,
   ].join("\n\n");
 
