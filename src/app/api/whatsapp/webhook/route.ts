@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         // do webhook (ver catch abaixo), não reprocessa nem duplica.
         const { data: leadExistente } = await supabase
           .from("agente_mensagens")
-          .select("id, processado")
+          .select("id, processado, created_at")
           .eq("membro_id", session.membro_id)
           .eq("telefone_lead", telefoneLead)
           .eq("whatsapp_message_id", key.id)
@@ -138,6 +138,7 @@ export async function POST(request: Request) {
             .reverse();
 
           let leadRowId = leadExistente?.id;
+          let leadCreatedAt = leadExistente?.created_at;
           if (!leadRowId) {
             const { data: inserted } = await supabase
               .from("agente_mensagens")
@@ -149,9 +150,33 @@ export async function POST(request: Request) {
                 whatsapp_message_id: key.id,
                 processado: false,
               })
-              .select("id")
+              .select("id, created_at")
               .single();
             leadRowId = inserted?.id;
+            leadCreatedAt = inserted?.created_at;
+          }
+
+          // Idempotência de envio: se uma entrega anterior deste mesmo webhook
+          // (retry da Evolution) já gerou e enviou a resposta do agente, mas o
+          // processo caiu antes de marcar `processado: true` (ver catch abaixo),
+          // não gera nem envia a resposta de novo — só finaliza o processado.
+          // Sem isso, cada retry gerava uma nova resposta da IA e mandava pro
+          // lead de novo, resultando em mensagens duplicadas em sequência.
+          if (leadRowId && leadCreatedAt) {
+            const { data: respostaJaEnviada } = await supabase
+              .from("agente_mensagens")
+              .select("id")
+              .eq("membro_id", session.membro_id)
+              .eq("telefone_lead", telefoneLead)
+              .eq("remetente", "agente")
+              .gt("created_at", leadCreatedAt)
+              .limit(1)
+              .maybeSingle();
+
+            if (respostaJaEnviada) {
+              await supabase.from("agente_mensagens").update({ processado: true }).eq("id", leadRowId);
+              break;
+            }
           }
 
           const { data: membro } = await supabase
