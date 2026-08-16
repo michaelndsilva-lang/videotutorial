@@ -1,6 +1,6 @@
 // Gerado a partir do projeto Supabase real. Para atualizar após uma nova migration,
 // peça para regenerar via mcp__claude_ai_Supabase__generate_typescript_types — os
-// aliases de conveniência (AgenteModo, MembroStatus, UserRole, WhatsappStatus) no
+// aliases de conveniência (AgenteModo, MembroStatus, UserRole, WhatsappStatus, ...) no
 // final do arquivo são mantidos à mão e precisam ser reaplicados após regenerar.
 
 export type Json =
@@ -100,25 +100,37 @@ export type Database = {
       }
       configuracoes_gerais: {
         Row: {
+          creditos_mensais_padrao: number
+          custo_por_geracao: number
           id: string
           link_energia_padrao: string | null
           link_recrutamento_padrao: string | null
+          modelo_ia_conteudo: string
+          modo_credito: string
           nome_empresa: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          creditos_mensais_padrao?: number
+          custo_por_geracao?: number
           id?: string
           link_energia_padrao?: string | null
           link_recrutamento_padrao?: string | null
+          modelo_ia_conteudo?: string
+          modo_credito?: string
           nome_empresa?: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          creditos_mensais_padrao?: number
+          custo_por_geracao?: number
           id?: string
           link_energia_padrao?: string | null
           link_recrutamento_padrao?: string | null
+          modelo_ia_conteudo?: string
+          modo_credito?: string
           nome_empresa?: string
           updated_at?: string
           updated_by?: string | null
@@ -127,6 +139,131 @@ export type Database = {
           {
             foreignKeyName: "configuracoes_gerais_updated_by_fkey"
             columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conteudo_geracoes: {
+        Row: {
+          created_at: string
+          favorito: boolean
+          formato: Database["public"]["Enums"]["formato_conteudo"]
+          id: string
+          objetivo: Database["public"]["Enums"]["objetivo_conteudo"]
+          prompt_final: string
+          resultado: Json | null
+          tema_livre: string | null
+          tokens_consumidos: number | null
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          favorito?: boolean
+          formato: Database["public"]["Enums"]["formato_conteudo"]
+          id?: string
+          objetivo: Database["public"]["Enums"]["objetivo_conteudo"]
+          prompt_final: string
+          resultado?: Json | null
+          tema_livre?: string | null
+          tokens_consumidos?: number | null
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          favorito?: boolean
+          formato?: Database["public"]["Enums"]["formato_conteudo"]
+          id?: string
+          objetivo?: Database["public"]["Enums"]["objetivo_conteudo"]
+          prompt_final?: string
+          resultado?: Json | null
+          tema_livre?: string | null
+          tokens_consumidos?: number | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conteudo_geracoes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conteudo_prompt_templates: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          formato: Database["public"]["Enums"]["formato_conteudo"]
+          id: string
+          objetivo: Database["public"]["Enums"]["objetivo_conteudo"]
+          system_prompt: string
+          updated_at: string
+          versao: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          formato: Database["public"]["Enums"]["formato_conteudo"]
+          id?: string
+          objetivo: Database["public"]["Enums"]["objetivo_conteudo"]
+          system_prompt: string
+          updated_at?: string
+          versao?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          formato?: Database["public"]["Enums"]["formato_conteudo"]
+          id?: string
+          objetivo?: Database["public"]["Enums"]["objetivo_conteudo"]
+          system_prompt?: string
+          updated_at?: string
+          versao?: number
+        }
+        Relationships: []
+      }
+      creditos_extrato: {
+        Row: {
+          created_at: string
+          id: string
+          quantidade: number
+          referencia_id: string | null
+          saldo_apos: number
+          tipo: Database["public"]["Enums"]["tipo_credito"]
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          quantidade: number
+          referencia_id?: string | null
+          saldo_apos: number
+          tipo: Database["public"]["Enums"]["tipo_credito"]
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          quantidade?: number
+          referencia_id?: string | null
+          saldo_apos?: number
+          tipo?: Database["public"]["Enums"]["tipo_credito"]
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creditos_extrato_referencia_id_fkey"
+            columns: ["referencia_id"]
+            isOneToOne: false
+            referencedRelation: "conteudo_geracoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creditos_extrato_usuario_id_fkey"
+            columns: ["usuario_id"]
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
@@ -289,6 +426,59 @@ export type Database = {
           },
         ]
       }
+      perfil_conteudo: {
+        Row: {
+          cidade: string | null
+          created_at: string
+          nivel_experiencia:
+            | Database["public"]["Enums"]["nivel_experiencia_conteudo"]
+            | null
+          nome_exibicao: string | null
+          onboarding_completo: boolean
+          publico_alvo: string | null
+          tom_de_voz: Database["public"]["Enums"]["tom_voz_conteudo"] | null
+          updated_at: string
+          usuario_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          created_at?: string
+          nivel_experiencia?:
+            | Database["public"]["Enums"]["nivel_experiencia_conteudo"]
+            | null
+          nome_exibicao?: string | null
+          onboarding_completo?: boolean
+          publico_alvo?: string | null
+          tom_de_voz?: Database["public"]["Enums"]["tom_voz_conteudo"] | null
+          updated_at?: string
+          usuario_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          created_at?: string
+          nivel_experiencia?:
+            | Database["public"]["Enums"]["nivel_experiencia_conteudo"]
+            | null
+          nome_exibicao?: string | null
+          onboarding_completo?: boolean
+          publico_alvo?: string | null
+          tom_de_voz?: Database["public"]["Enums"]["tom_voz_conteudo"] | null
+          updated_at?: string
+          usuario_id?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfil_conteudo_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: true
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios: {
         Row: {
           created_at: string
@@ -367,12 +557,48 @@ export type Database = {
           ultima_mensagem_em: string
         }[]
       }
+      conteudo_ajustar_credito: {
+        Args: { p_novo_saldo: number; p_usuario_id: string }
+        Returns: {
+          saldo_apos: number
+        }[]
+      }
+      conteudo_registrar_geracao: {
+        Args: {
+          p_custo: number
+          p_formato: Database["public"]["Enums"]["formato_conteudo"]
+          p_modo_credito: string
+          p_objetivo: Database["public"]["Enums"]["objetivo_conteudo"]
+          p_prompt_final: string
+          p_resultados: Json
+          p_tema_livre: string
+          p_tokens_consumidos: number
+          p_usuario_id: string
+        }
+        Returns: {
+          geracao_id: string
+          saldo_apos: number
+        }[]
+      }
     }
     Enums: {
       agente_modo: "recrutamento" | "energia"
       card_origem: "manual" | "agente_ia"
+      formato_conteudo:
+        | "reels"
+        | "legenda_post"
+        | "stories"
+        | "whatsapp_prospeccao"
       membro_status: "pendente" | "ativo" | "inativo"
       mensagem_remetente: "lead" | "agente"
+      nivel_experiencia_conteudo: "iniciante" | "intermediario" | "lider"
+      objetivo_conteudo:
+        | "recrutamento"
+        | "energia_assinatura"
+        | "venda_produto"
+        | "autoridade_pessoal"
+      tipo_credito: "recarga" | "consumo" | "ajuste_admin"
+      tom_voz_conteudo: "inspirador" | "direto" | "descontraido" | "autoridade"
       user_role: "admin" | "membro"
       whatsapp_status: "desconectado" | "aguardando_qr" | "conectado" | "erro"
     }
@@ -504,8 +730,23 @@ export const Constants = {
     Enums: {
       agente_modo: ["recrutamento", "energia"],
       card_origem: ["manual", "agente_ia"],
+      formato_conteudo: [
+        "reels",
+        "legenda_post",
+        "stories",
+        "whatsapp_prospeccao",
+      ],
       membro_status: ["pendente", "ativo", "inativo"],
       mensagem_remetente: ["lead", "agente"],
+      nivel_experiencia_conteudo: ["iniciante", "intermediario", "lider"],
+      objetivo_conteudo: [
+        "recrutamento",
+        "energia_assinatura",
+        "venda_produto",
+        "autoridade_pessoal",
+      ],
+      tipo_credito: ["recarga", "consumo", "ajuste_admin"],
+      tom_voz_conteudo: ["inspirador", "direto", "descontraido", "autoridade"],
       user_role: ["admin", "membro"],
       whatsapp_status: ["desconectado", "aguardando_qr", "conectado", "erro"],
     },
@@ -516,3 +757,9 @@ export type AgenteModo = Database["public"]["Enums"]["agente_modo"]
 export type MembroStatus = Database["public"]["Enums"]["membro_status"]
 export type UserRole = Database["public"]["Enums"]["user_role"]
 export type WhatsappStatus = Database["public"]["Enums"]["whatsapp_status"]
+export type ObjetivoConteudo = Database["public"]["Enums"]["objetivo_conteudo"]
+export type FormatoConteudo = Database["public"]["Enums"]["formato_conteudo"]
+export type TomVozConteudo = Database["public"]["Enums"]["tom_voz_conteudo"]
+export type NivelExperienciaConteudo =
+  Database["public"]["Enums"]["nivel_experiencia_conteudo"]
+export type TipoCredito = Database["public"]["Enums"]["tipo_credito"]

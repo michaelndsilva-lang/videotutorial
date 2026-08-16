@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Bot, Settings, KanbanSquare, UserCircle, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Bot, Settings, KanbanSquare, UserCircle, LogOut, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -23,6 +23,7 @@ const NAV_CONFIG = {
       { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/admin/membros", label: "Membros", icon: Users },
       { href: "/admin/agentes", label: "Agentes", icon: Bot },
+      { href: "/admin/conteudo", label: "Conteúdo", icon: Sparkles },
       { href: "/admin/configuracoes", label: "Config.", icon: Settings },
     ],
   },
@@ -32,6 +33,7 @@ const NAV_CONFIG = {
       { href: "/membro/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { href: "/membro/kanban", label: "Kanban", icon: KanbanSquare },
       { href: "/membro/agente-ia", label: "Agente IA", icon: Bot },
+      { href: "/membro/conteudo", label: "Conteúdo", icon: Sparkles },
       { href: "/membro/perfil", label: "Perfil", icon: UserCircle },
     ],
   },
