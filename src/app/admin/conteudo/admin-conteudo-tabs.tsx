@@ -22,6 +22,11 @@ export function AdminConteudoTabs() {
           <Link
             key={tab.href}
             href={tab.href}
+            // Evita servir dados desatualizados do payload prefetched
+            // (staleTimes.static reaproveita o loading boundary por 5min) —
+            // ex.: editar créditos e trocar pra Métricas não pode mostrar
+            // números de antes da edição.
+            prefetch={false}
             className={cn(
               "-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors",
               active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"

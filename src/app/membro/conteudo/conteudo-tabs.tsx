@@ -21,6 +21,12 @@ export function ConteudoTabs() {
           <Link
             key={tab.href}
             href={tab.href}
+            // Evita servir dados desatualizados do payload prefetched
+            // (staleTimes.static reaproveita o loading boundary por 5min) —
+            // ex.: gerar conteúdo e trocar pra Biblioteca não pode mostrar a
+            // lista de antes da geração. Confirmado em teste real que esse
+            // mesmo padrão causa staleness nos filtros da Biblioteca.
+            prefetch={false}
             className={cn(
               "-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors",
               active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"

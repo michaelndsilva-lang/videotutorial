@@ -17,6 +17,12 @@ function Pill({ href, ativo, children }: { href: string; ativo: boolean; childre
   return (
     <Link
       href={href}
+      // Sem isso, o Next reaproveita o payload prefetched do loading
+      // boundary (cacheado por staleTimes.static, 5min por padrão) em vez de
+      // buscar os dados filtrados de novo — confirmado em teste real: clicar
+      // em "Favoritos" trocava a URL mas mantinha a lista antiga até um
+      // reload completo.
+      prefetch={false}
       className={cn(
         "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
         ativo ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:bg-muted"
