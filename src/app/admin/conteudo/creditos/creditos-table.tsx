@@ -108,7 +108,15 @@ export function CreditosTable({ linhas: linhasIniciais }: { linhas: LinhaCredito
         </TableHeader>
         <TableBody>
           {linhas.map((linha) => (
-            <LinhaMembro key={linha.usuarioId} linha={linha} onSaldoChange={(novo) => atualizarSaldo(linha.usuarioId, novo)} />
+            // key inclui o saldo: força remount quando o valor muda por
+            // fora (ajuste em massa, ou outra aba) — sem isso o input local
+            // (useState) fica preso no valor antigo, mesmo o saldo real já
+            // tendo mudado. Mesmo bug confirmado no editor de templates.
+            <LinhaMembro
+              key={`${linha.usuarioId}:${linha.saldo}`}
+              linha={linha}
+              onSaldoChange={(novo) => atualizarSaldo(linha.usuarioId, novo)}
+            />
           ))}
         </TableBody>
       </Table>
