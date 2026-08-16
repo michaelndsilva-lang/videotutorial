@@ -124,10 +124,27 @@ Em especial:
     hour: "2-digit",
     minute: "2-digit",
   }).format(agora);
-  const instrucaoData = `Data e hora atuais (horário de Brasília): agora são ${horaAtualFormatada}. Calendário dos próximos dias, já calculado — use exatamente estes dias da semana, NUNCA calcule por conta própria:
+  const horaNumerica = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: fusoHorario, hour: "2-digit", hourCycle: "h23" }).format(agora)
+  );
+  const periodoDoDia =
+    horaNumerica < 6
+      ? "madrugada"
+      : horaNumerica < 12
+        ? "manhã"
+        : horaNumerica < 18
+          ? "tarde"
+          : "noite";
+  // Mesmo problema do "amanhã": sem isso o modelo também chuta o horário
+  // atual (às vezes assume fuso do lead, ou um horário genérico tipo
+  // "boa tarde" fora de hora). Toda a equipe e os leads operam em
+  // horário de Brasília — nunca o fuso de onde o lead escreve.
+  const instrucaoData = `Data e hora atuais (SEMPRE horário de Brasília, America/Sao_Paulo — nunca assuma outro fuso, mesmo que o lead pareça escrever de outra região): agora são ${horaAtualFormatada}, período da ${periodoDoDia}. Calendário dos próximos dias, já calculado — use exatamente estes dias da semana, NUNCA calcule por conta própria:
 ${proximosDias}
 
-Sempre que for mencionar, sugerir ou confirmar QUALQUER data (ex.: "amanhã", "depois de amanhã", "sexta-feira que vem", agendar uma reunião, etc.), copie o dia da semana e a data diretamente da tabela acima em vez de fazer contas de cabeça. Nunca invente ou "chute" um dia da semana que não esteja na tabela. Lembre-se também da regra de agendamento do prompt acima (nunca aos domingos, se aplicável) ao escolher qual dia da tabela sugerir.`;
+Sempre que for mencionar, sugerir ou confirmar QUALQUER data (ex.: "amanhã", "depois de amanhã", "sexta-feira que vem", agendar uma reunião, etc.), copie o dia da semana e a data diretamente da tabela acima em vez de fazer contas de cabeça. Nunca invente ou "chute" um dia da semana que não esteja na tabela. Lembre-se também da regra de agendamento do prompt acima (nunca aos domingos, se aplicável) ao escolher qual dia da tabela sugerir.
+
+O mesmo vale para horário: use a hora atual acima como referência exata para expressões relativas de tempo (ex.: "daqui a pouco", "mais tarde", "hoje à noite", "bom dia"/"boa tarde"/"boa noite", "em quanto tempo você responde", horários de reunião). Não calcule de cabeça nem assuma um horário genérico — parta sempre de "${horaAtualFormatada}" (período da ${periodoDoDia}) em horário de Brasília. Se for saudar o lead, use a saudação compatível com o período atual (madrugada/manhã/tarde/noite) informado acima, não uma saudação genérica ou baseada em suposição.`;
 
   // Regra de engajamento: toda resposta ao lead deve terminar incentivando
   // ele a responder, para a conversa não morrer. Fica no código (não só no
