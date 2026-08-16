@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -18,22 +17,20 @@ export function ConteudoTabs() {
       {TABS.map((tab) => {
         const active = pathname.startsWith(tab.href);
         return (
-          <Link
+          // <a> nativo, não next/link: revisitar uma rota já visitada nesta
+          // sessão (ex. Gerar → Biblioteca → Gerar → gera de novo →
+          // Biblioteca) pode servir o payload em cache em vez de buscar de
+          // novo — confirmado com o mesmo padrão nos filtros da Biblioteca.
+          <a
             key={tab.href}
             href={tab.href}
-            // Evita servir dados desatualizados do payload prefetched
-            // (staleTimes.static reaproveita o loading boundary por 5min) —
-            // ex.: gerar conteúdo e trocar pra Biblioteca não pode mostrar a
-            // lista de antes da geração. Confirmado em teste real que esse
-            // mesmo padrão causa staleness nos filtros da Biblioteca.
-            prefetch={false}
             className={cn(
               "-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors",
               active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
             {tab.label}
-          </Link>
+          </a>
         );
       })}
     </nav>

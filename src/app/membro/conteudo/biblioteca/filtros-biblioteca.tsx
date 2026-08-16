@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { OBJETIVO_LABEL, FORMATO_LABEL } from "@/lib/content/labels";
 import type { ObjetivoConteudo, FormatoConteudo } from "@/lib/types/database.types";
@@ -14,22 +13,21 @@ function buildHref(atuais: Record<string, string | undefined>, overrides: Record
 }
 
 function Pill({ href, ativo, children }: { href: string; ativo: boolean; children: React.ReactNode }) {
+  // <a> nativo, não next/link: confirmado em teste real (curl + DOM direto,
+  // não só screenshot) que o Link do Next, mesmo com prefetch={false},
+  // reaproveita o payload em cache do cliente ao trocar só o searchParam na
+  // mesma rota — a URL muda mas a lista não, e nenhuma requisição de rede
+  // chega a sair. <a> força reload completo, sempre busca dado fresco.
   return (
-    <Link
+    <a
       href={href}
-      // Sem isso, o Next reaproveita o payload prefetched do loading
-      // boundary (cacheado por staleTimes.static, 5min por padrão) em vez de
-      // buscar os dados filtrados de novo — confirmado em teste real: clicar
-      // em "Favoritos" trocava a URL mas mantinha a lista antiga até um
-      // reload completo.
-      prefetch={false}
       className={cn(
         "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
         ativo ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:bg-muted"
       )}
     >
       {children}
-    </Link>
+    </a>
   );
 }
 

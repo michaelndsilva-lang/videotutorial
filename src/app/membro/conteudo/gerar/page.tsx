@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -29,9 +28,9 @@ export default async function GerarConteudoPage() {
         <Card className="max-w-md">
           <CardContent className="flex flex-col items-start gap-3 pt-6">
             <p className="text-sm text-muted-foreground">Complete seu perfil em 1 minuto e libere o motor.</p>
-            <Link href="/membro/conteudo/perfil" className={buttonVariants({})}>
+            <a href="/membro/conteudo/perfil" className={buttonVariants({})}>
               Completar perfil
-            </Link>
+            </a>
           </CardContent>
         </Card>
       </div>

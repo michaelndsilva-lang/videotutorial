@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -19,21 +18,20 @@ export function AdminConteudoTabs() {
       {TABS.map((tab) => {
         const active = pathname.startsWith(tab.href);
         return (
-          <Link
+          // <a> nativo, não next/link: mesmo bug confirmado nos filtros da
+          // Biblioteca (revisitar uma rota já visitada nesta sessão serve o
+          // payload em cache em vez de buscar de novo) — ex.: editar
+          // créditos e voltar pra Métricas precisa mostrar números frescos.
+          <a
             key={tab.href}
             href={tab.href}
-            // Evita servir dados desatualizados do payload prefetched
-            // (staleTimes.static reaproveita o loading boundary por 5min) —
-            // ex.: editar créditos e trocar pra Métricas não pode mostrar
-            // números de antes da edição.
-            prefetch={false}
             className={cn(
               "-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors",
               active ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
             )}
           >
             {tab.label}
-          </Link>
+          </a>
         );
       })}
     </nav>
