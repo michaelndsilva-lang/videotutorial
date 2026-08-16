@@ -131,11 +131,22 @@ export function TemplatesEditor({ templates }: { templates: TemplateRow[] }) {
                 );
               })}
             </TabsList>
-            {FORMATOS.map((formato) => (
-              <TabsContent key={formato} value={formato}>
-                <ComboEditor objetivo={objetivo} formato={formato} versoes={porCombo.get(`${objetivo}:${formato}`) ?? []} />
-              </TabsContent>
-            ))}
+            {FORMATOS.map((formato) => {
+              const versoes = porCombo.get(`${objetivo}:${formato}`) ?? [];
+              const ativa = versoes.find((v) => v.ativo) ?? versoes[0];
+              return (
+                <TabsContent key={formato} value={formato}>
+                  {/* key na versão ativa: salvar/restaurar troca qual linha
+                      está ativa (revalidatePath busca dado novo do servidor),
+                      mas o useState do textarea só lê a prop inicial — sem
+                      isso a tela fica mostrando o texto antigo até um reload
+                      manual, mesmo com o banco já correto. Confirmado em
+                      teste real: restaurar v1 salvava certo no servidor, mas
+                      o textarea continuava mostrando o texto da v2. */}
+                  <ComboEditor key={ativa?.id ?? formato} objetivo={objetivo} formato={formato} versoes={versoes} />
+                </TabsContent>
+              );
+            })}
           </Tabs>
         </TabsContent>
       ))}

@@ -19,8 +19,11 @@ export default async function AdminConteudoCreditosPage() {
       .order("created_at"),
     supabase
       .from("creditos_extrato")
-      .select("usuario_id, saldo_apos, created_at")
-      .order("created_at", { ascending: false }),
+      .select("usuario_id, saldo_apos, seq")
+      // seq, não created_at — dois lançamentos da mesma transação podem
+      // sair com o mesmo timestamp (now() é fixo por transação); ver
+      // comentário em gerar/actions.ts.
+      .order("seq", { ascending: false }),
   ]);
 
   const saldoPorUsuario = new Map<string, number>();

@@ -57,7 +57,12 @@ export async function gerarConteudo(input: GerarConteudoInput): Promise<GerarCon
       .from("creditos_extrato")
       .select("saldo_apos")
       .eq("usuario_id", user.id)
-      .order("created_at", { ascending: false })
+      // seq, não created_at: dois lançamentos da mesma transação (ex. a
+      // recarga inicial + o primeiro consumo) saem com timestamp idêntico
+      // (now() é fixo por transação em plpgsql) — só uma coluna monotônica
+      // de verdade garante pegar o mais recente. Bug real encontrado em
+      // teste: um saldo_apos ficou gravado errado por causa disso.
+      .order("seq", { ascending: false })
       .limit(1)
       .maybeSingle();
 

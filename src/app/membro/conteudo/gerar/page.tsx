@@ -16,7 +16,8 @@ export default async function GerarConteudoPage() {
       .from("creditos_extrato")
       .select("saldo_apos")
       .eq("usuario_id", user.id)
-      .order("created_at", { ascending: false })
+      // seq, não created_at — ver comentário em gerar/actions.ts.
+      .order("seq", { ascending: false })
       .limit(1)
       .maybeSingle(),
   ]);

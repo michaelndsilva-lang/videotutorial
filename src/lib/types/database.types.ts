@@ -154,6 +154,7 @@ export type Database = {
           objetivo: Database["public"]["Enums"]["objetivo_conteudo"]
           prompt_final: string
           resultado: Json | null
+          seq: number
           tema_livre: string | null
           tokens_consumidos: number | null
           usuario_id: string
@@ -166,6 +167,7 @@ export type Database = {
           objetivo: Database["public"]["Enums"]["objetivo_conteudo"]
           prompt_final: string
           resultado?: Json | null
+          seq?: number
           tema_livre?: string | null
           tokens_consumidos?: number | null
           usuario_id: string
@@ -178,6 +180,7 @@ export type Database = {
           objetivo?: Database["public"]["Enums"]["objetivo_conteudo"]
           prompt_final?: string
           resultado?: Json | null
+          seq?: number
           tema_livre?: string | null
           tokens_consumidos?: number | null
           usuario_id?: string
@@ -232,6 +235,7 @@ export type Database = {
           quantidade: number
           referencia_id: string | null
           saldo_apos: number
+          seq: number
           tipo: Database["public"]["Enums"]["tipo_credito"]
           usuario_id: string
         }
@@ -241,6 +245,7 @@ export type Database = {
           quantidade: number
           referencia_id?: string | null
           saldo_apos: number
+          seq?: number
           tipo: Database["public"]["Enums"]["tipo_credito"]
           usuario_id: string
         }
@@ -250,6 +255,7 @@ export type Database = {
           quantidade?: number
           referencia_id?: string | null
           saldo_apos?: number
+          seq?: number
           tipo?: Database["public"]["Enums"]["tipo_credito"]
           usuario_id?: string
         }

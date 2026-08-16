@@ -18,7 +18,9 @@ export default async function BibliotecaPage({
     .from("conteudo_geracoes")
     .select("id, objetivo, formato, resultado, favorito, created_at")
     .eq("usuario_id", user.id)
-    .order("created_at", { ascending: false })
+    // seq, não created_at: as 3 variações de um mesmo lote são inseridas na
+    // mesma transação (mesmo timestamp) — só seq garante ordem determinística.
+    .order("seq", { ascending: false })
     .limit(60);
 
   if (objetivo) query = query.eq("objetivo", objetivo as ObjetivoConteudo);

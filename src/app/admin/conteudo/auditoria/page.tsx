@@ -10,7 +10,8 @@ export default async function AdminConteudoAuditoriaPage() {
   const { data } = await supabase
     .from("conteudo_geracoes")
     .select("id, objetivo, formato, tema_livre, prompt_final, resultado, created_at, usuarios(nome_completo, email)")
-    .order("created_at", { ascending: false })
+    // seq, não created_at — ver comentário em biblioteca/page.tsx.
+    .order("seq", { ascending: false })
     .limit(50);
 
   const itens: ItemAuditoria[] = (data ?? []).map((row) => ({
