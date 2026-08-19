@@ -24,6 +24,23 @@ export type EvolutionFetchInstanceInfo = {
 
 // ---- Payloads de webhook ----
 
+export type EvolutionInboundMessage = {
+  conversation?: string;
+  extendedTextMessage?: { text?: string };
+  audioMessage?: { mimetype?: string; seconds?: number; ptt?: boolean };
+  imageMessage?: { mimetype?: string; caption?: string };
+  documentMessage?: { mimetype?: string; caption?: string; fileName?: string };
+  // Formato usado por versões recentes do WhatsApp para documento enviado com
+  // legenda — o documentMessage real fica aninhado um nível abaixo.
+  documentWithCaptionMessage?: {
+    message?: { documentMessage?: { mimetype?: string; caption?: string; fileName?: string } };
+  };
+  videoMessage?: { mimetype?: string; caption?: string };
+  // Presente quando a instância foi criada com `webhook.base64: true` (mídia
+  // já vem decodificada, sem precisar de uma segunda chamada).
+  base64?: string;
+};
+
 export type EvolutionWebhookEvent =
   | { event: "qrcode.updated"; instance: string; data: { qrcode: { base64: string; code?: string; count?: number } } }
   | { event: "connection.update"; instance: string; data: { state: EvolutionConnectionState; statusReason?: number } }
@@ -34,14 +51,7 @@ export type EvolutionWebhookEvent =
         key: { remoteJid: string; fromMe: boolean; id: string };
         pushName?: string;
         messageType?: string;
-        message?: {
-          conversation?: string;
-          extendedTextMessage?: { text?: string };
-          audioMessage?: { mimetype?: string; seconds?: number; ptt?: boolean };
-          // Presente quando a instância foi criada com `webhook.base64: true`
-          // (mídia já vem decodificada, sem precisar de uma segunda chamada).
-          base64?: string;
-        };
+        message?: EvolutionInboundMessage;
       };
     };
 

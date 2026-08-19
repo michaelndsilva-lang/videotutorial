@@ -276,6 +276,35 @@ export type Database = {
           },
         ]
       }
+      energia_leads: {
+        Row: {
+          etapa: string
+          membro_id: string
+          telefone_lead: string
+          updated_at: string
+        }
+        Insert: {
+          etapa?: string
+          membro_id: string
+          telefone_lead: string
+          updated_at?: string
+        }
+        Update: {
+          etapa?: string
+          membro_id?: string
+          telefone_lead?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "energia_leads_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
       kanban_boards: {
         Row: {
           created_at: string
@@ -769,3 +798,12 @@ export type TomVozConteudo = Database["public"]["Enums"]["tom_voz_conteudo"]
 export type NivelExperienciaConteudo =
   Database["public"]["Enums"]["nivel_experiencia_conteudo"]
 export type TipoCredito = Database["public"]["Enums"]["tipo_credito"]
+
+// energia_leads.etapa é `text` com check constraint (não enum no banco) — união
+// mantida à mão em paralelo à constraint da migration 0020_energia_leads_etapa.
+export type EnergiaEtapa =
+  | "aguardando_conta"
+  | "aguardando_analise"
+  | "aguardando_documento"
+  | "aguardando_email"
+  | "concluido"

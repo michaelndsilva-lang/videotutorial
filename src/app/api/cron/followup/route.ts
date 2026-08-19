@@ -44,6 +44,19 @@ export async function GET(request: Request) {
       const mensagem = config?.prompt_followup?.trim();
       if (!mensagem) continue; // sem follow-up configurado para este modo
 
+      // No modo energia, um lead "aguardando_analise" está pausado esperando
+      // avaliação manual do membro — um follow-up automático aqui contradiria
+      // exatamente esse silêncio (ver webhook de mensagens do WhatsApp).
+      if (modo === "energia") {
+        const { data: leadState } = await supabase
+          .from("energia_leads")
+          .select("etapa")
+          .eq("membro_id", conversa.membro_id)
+          .eq("telefone_lead", conversa.telefone_lead)
+          .maybeSingle();
+        if (leadState?.etapa === "aguardando_analise") continue;
+      }
+
       const { data: session } = await supabase
         .from("whatsapp_sessions")
         .select("instance_name, status")

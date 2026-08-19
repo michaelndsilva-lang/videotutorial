@@ -33,6 +33,7 @@ export async function gerarRespostaAgente({
   linkCadastro,
   historico,
   mensagemAtual,
+  contextoAdicional,
 }: {
   promptSistema: string;
   nomeAgente?: string | null;
@@ -41,6 +42,11 @@ export async function gerarRespostaAgente({
   linkCadastro?: string | null;
   historico: HistoricoMensagem[];
   mensagemAtual: string;
+  // Nota situacional injetada pelo webhook (ex.: "o lead acabou de mandar a
+  // conta de luz em anexo", "esta conversa está aguardando o e-mail do
+  // lead") — usada pelo fluxo de energia para dar ao modelo contexto que não
+  // está no prompt_sistema editável nem no histórico de texto puro.
+  contextoAdicional?: string | null;
 }): Promise<string> {
   // Redige URLs de mensagens antigas do próprio agente: já vimos o modelo
   // "ancorar" num link errado do histórico e repeti-lo mesmo com instrução
@@ -163,9 +169,13 @@ O mesmo vale para horário: use a hora atual acima como referência exata para e
     `---\n\n${instrucaoData}`,
     `---\n\n${instrucaoPerguntaProvocativa}`,
     `---\n\n${instrucaoLink}`,
+    contextoAdicional ? `---\n\n${contextoAdicional}` : null,
     `---\n\nLembrete final antes de responder: ${instrucaoData}`,
     `---\n\nLembrete final antes de responder: ${instrucaoLink}`,
-  ].join("\n\n");
+    contextoAdicional ? `---\n\nLembrete final antes de responder: ${contextoAdicional}` : null,
+  ]
+    .filter((bloco): bloco is string => Boolean(bloco))
+    .join("\n\n");
 
   // Instrução no prompt não é confiável o bastante sozinha — já vimos o
   // modelo copiar o marcador de redação literalmente pro lead mesmo com
@@ -190,4 +200,52 @@ O mesmo vale para horário: use a hora atual acima como referência exata para e
   }
 
   throw ultimoErro;
+}
+
+// Classifica uma mensagem manual do membro (enviada do próprio WhatsApp dele,
+// fromMe) enquanto o modo Energia está pausado aguardando análise da conta de
+// luz. Usada pelo webhook pra decidir se retoma o agente (e pra qual etapa) ou
+// se continua pausado à espera de um sinal mais claro. Não é uma resposta ao
+// lead — só uma leitura de intenção do texto do membro, por isso é uma
+// chamada separada e curta, não o fluxo normal de gerarRespostaAgente.
+export async function classificarRespostaAnaliseConta(
+  textoHumano: string
+): Promise<"aprovado" | "reprovado" | "indefinido"> {
+  const system = `Você está lendo uma mensagem que um consultor de energia escreveu manualmente para um lead, respondendo sobre a análise da conta de luz que o lead enviou. Classifique a intenção dessa mensagem em exatamente uma palavra:
+
+- "aprovado": a mensagem confirma que a conta foi aprovada, é elegível, pode seguir para os próximos passos (ex.: "conta aprovada", "deu certo, pode mandar o documento", "elegível, vamos seguir").
+- "reprovado": a mensagem nega/rejeita a conta ou diz que ela não pode seguir (ex.: "não deu certo", "não aprovado", "essa conta não é elegível", "infelizmente não podemos seguir com essa unidade").
+- "indefinido": a mensagem não deixa claro nenhum dos dois casos acima (ex.: "vou verificar", "só um momento", ou qualquer outro assunto).
+
+Responda APENAS com uma dessas três palavras, em minúsculas, sem pontuação nem explicação.`;
+
+  let ultimoErro: unknown;
+  for (const model of FALLBACK_MODELS) {
+    try {
+      const { text } = await generateText({
+        model,
+        system,
+        messages: [{ role: "user", content: textoHumano }],
+      });
+      // Comparação exata (não substring): um modelo mais fraco pode devolver
+      // frases inteiras em vez de só a palavra pedida, e "não aprovado" — uma
+      // reprovação — contém "aprovado" como substring. Qualquer resposta que
+      // não seja exatamente uma das três palavras esperadas cai em
+      // "indefinido", que mantém o agente pausado — falha segura, nunca
+      // destrava a próxima etapa por engano.
+      const resposta = text
+        .trim()
+        .toLowerCase()
+        .replace(/[^\p{L}]/gu, "");
+      if (resposta === "aprovado") return "aprovado";
+      if (resposta === "reprovado") return "reprovado";
+      return "indefinido";
+    } catch (err) {
+      ultimoErro = err;
+      console.error(`Falha ao classificar resposta de análise com o modelo ${model}:`, err);
+    }
+  }
+
+  console.error("Falha ao classificar resposta de análise em todos os modelos:", ultimoErro);
+  return "indefinido";
 }

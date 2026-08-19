@@ -4,15 +4,31 @@ import {
   fetchEvolutionMediaBase64,
   sendEvolutionText,
 } from "@/lib/evolution/client";
-import { gerarRespostaAgente } from "@/lib/ai/agente";
+import { gerarRespostaAgente, classificarRespostaAnaliseConta } from "@/lib/ai/agente";
 import { transcreverAudioDoLead } from "@/lib/ai/audio";
 import { normalizeTelefone, upsertLeadCard } from "@/lib/kanban/upsert-lead";
-import type { EvolutionWebhookEvent } from "@/lib/evolution/types";
+import type { EvolutionInboundMessage, EvolutionWebhookEvent } from "@/lib/evolution/types";
+import type { EnergiaEtapa } from "@/lib/types/database.types";
 
 export const maxDuration = 60;
 
 function normalizeQrBase64(base64: string): string {
   return base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`;
+}
+
+// Extrai o anexo de mídia (imagem, documento ou vídeo) de uma mensagem, se
+// houver. `documentWithCaptionMessage` é o formato usado por versões recentes
+// do WhatsApp para documento enviado com legenda — o documentMessage real vem
+// aninhado um nível abaixo.
+function extrairMedia(
+  message: EvolutionInboundMessage | undefined
+): { tipo: "imagem" | "documento" | "vídeo"; caption?: string } | null {
+  if (message?.imageMessage) return { tipo: "imagem", caption: message.imageMessage.caption };
+  if (message?.documentMessage) return { tipo: "documento", caption: message.documentMessage.caption };
+  const docComLegenda = message?.documentWithCaptionMessage?.message?.documentMessage;
+  if (docComLegenda) return { tipo: "documento", caption: docComLegenda.caption };
+  if (message?.videoMessage) return { tipo: "vídeo", caption: message.videoMessage.caption };
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -86,10 +102,95 @@ export async function POST(request: Request) {
       case "messages.upsert": {
         const { key, message, pushName } = payload.data;
 
-        // Mensagens enviadas pelo próprio membro (fromMe) não passam pelo agente,
-        // senão ele responderia a si mesmo. Grupos (@g.us) ficam fora do MVP.
-        if (key.fromMe || key.remoteJid.endsWith("@g.us")) break;
+        // Grupos (@g.us) ficam fora do MVP.
+        if (key.remoteJid.endsWith("@g.us")) break;
 
+        const telefoneLead = normalizeTelefone(key.remoteJid.split("@")[0]);
+
+        const { data: membro } = await supabase
+          .from("membros")
+          .select("modo_agente_ativo, nome_agente, link_recrutamento, link_energia")
+          .eq("usuario_id", session.membro_id)
+          .single();
+        const modo = membro?.modo_agente_ativo ?? "recrutamento";
+
+        // ------------------------------------------------------------------
+        // Mensagens enviadas pelo próprio membro (fromMe), manualmente, no
+        // WhatsApp dele. Fora do modo energia, nunca passam pelo agente (senão
+        // ele responderia a si mesmo) — comportamento original, inalterado.
+        // No modo energia, é o único jeito do sistema saber que o membro
+        // aprovou (ou não) a conta de luz enquanto o robô está pausado
+        // aguardando análise.
+        // ------------------------------------------------------------------
+        if (key.fromMe) {
+          if (modo !== "energia") break;
+
+          const textoHumano = message?.conversation ?? message?.extendedTextMessage?.text ?? "";
+          if (!textoHumano) break;
+
+          const { data: leadState } = await supabase
+            .from("energia_leads")
+            .select("etapa")
+            .eq("membro_id", session.membro_id)
+            .eq("telefone_lead", telefoneLead)
+            .maybeSingle();
+
+          // Só nos interessa uma mensagem manual quando o robô está pausado
+          // esperando o veredito da análise — fora disso, é só o membro
+          // conversando manualmente com o lead, nada pra classificar.
+          if (leadState?.etapa !== "aguardando_analise") break;
+
+          // Idempotência: retry do mesmo webhook não reclassifica de novo.
+          const { data: jaProcessado } = await supabase
+            .from("agente_mensagens")
+            .select("id")
+            .eq("membro_id", session.membro_id)
+            .eq("telefone_lead", telefoneLead)
+            .eq("whatsapp_message_id", key.id)
+            .maybeSingle();
+          if (jaProcessado) break;
+
+          try {
+            const classificacao = await classificarRespostaAnaliseConta(textoHumano);
+            const novaEtapa: EnergiaEtapa | null =
+              classificacao === "aprovado"
+                ? "aguardando_documento"
+                : classificacao === "reprovado"
+                  ? "aguardando_conta"
+                  : null; // "indefinido": continua pausado até um sinal mais claro
+
+            if (novaEtapa) {
+              const { error } = await supabase.from("energia_leads").upsert({
+                membro_id: session.membro_id,
+                telefone_lead: telefoneLead,
+                etapa: novaEtapa,
+              });
+              if (error) throw error;
+            }
+
+            // Só marca esta mensagem como processada (dedup por
+            // whatsapp_message_id) depois que a transição de etapa — quando
+            // houver — foi aplicada com sucesso. Se o upsert acima falhar, a
+            // inserção abaixo não roda, e uma reentrega do mesmo webhook
+            // tenta classificar de novo em vez de ficar presa achando que já
+            // processou algo que na verdade falhou.
+            await supabase.from("agente_mensagens").insert({
+              membro_id: session.membro_id,
+              telefone_lead: telefoneLead,
+              remetente: "agente",
+              conteudo: textoHumano,
+              whatsapp_message_id: key.id,
+            });
+          } catch (err) {
+            console.error("Falha ao classificar resposta manual de análise da conta:", err);
+          }
+
+          break;
+        }
+
+        // ------------------------------------------------------------------
+        // Mensagens do lead.
+        // ------------------------------------------------------------------
         let texto = message?.conversation ?? message?.extendedTextMessage?.text ?? "";
 
         if (!texto && message?.audioMessage) {
@@ -109,9 +210,18 @@ export async function POST(request: Request) {
           }
         }
 
-        if (!texto) break; // mensagens não-texto sem transcrição (imagem, etc.) fora do MVP
+        // Detecção de imagem/PDF/vídeo só é considerada no modo energia (é
+        // onde a conta de luz e os documentos chegam) — no modo recrutamento
+        // o comportamento continua exatamente o de antes: mídia sem texto é
+        // ignorada.
+        const media = modo === "energia" ? extrairMedia(message) : null;
+        if (modo === "energia" && !texto && media?.caption) texto = media.caption;
 
-        const telefoneLead = normalizeTelefone(key.remoteJid.split("@")[0]);
+        if (modo === "energia") {
+          if (!texto && !media) break; // sticker, localização, contato, etc. — fora do MVP
+        } else {
+          if (!texto) break; // mensagens não-texto sem transcrição (imagem, etc.) fora do MVP
+        }
 
         // Idempotência: se essa mensagem já foi respondida numa entrega anterior
         // do webhook (ver catch abaixo), não reprocessa nem duplica.
@@ -137,6 +247,12 @@ export async function POST(request: Request) {
             .filter((m) => m.id !== leadExistente?.id)
             .reverse();
 
+          // Quando a mensagem é só mídia sem legenda, `texto` fica vazio —
+          // usamos um placeholder tanto pro histórico salvo quanto pro que é
+          // passado à IA, já que `conteudo` é NOT NULL e a IA precisa de algum
+          // conteúdo de usuário pra responder.
+          const conteudoLead = texto || `[anexo enviado: ${media?.tipo}]`;
+
           let leadRowId = leadExistente?.id;
           let leadCreatedAt = leadExistente?.created_at;
           if (!leadRowId) {
@@ -146,7 +262,7 @@ export async function POST(request: Request) {
                 membro_id: session.membro_id,
                 telefone_lead: telefoneLead,
                 remetente: "lead",
-                conteudo: texto,
+                conteudo: conteudoLead,
                 whatsapp_message_id: key.id,
                 processado: false,
               })
@@ -179,12 +295,28 @@ export async function POST(request: Request) {
             }
           }
 
-          const { data: membro } = await supabase
-            .from("membros")
-            .select("modo_agente_ativo, nome_agente, link_recrutamento, link_energia")
-            .eq("usuario_id", session.membro_id)
-            .single();
-          const modo = membro?.modo_agente_ativo ?? "recrutamento";
+          // No modo energia, cada lead tem uma etapa no funil (conta -> análise
+          // humana -> documento -> e-mail -> concluído). Enquanto está
+          // aguardando análise, o robô fica em silêncio: quem responde o lead
+          // nesse período é o próprio membro, manualmente (ver bloco `fromMe`
+          // acima).
+          let etapaEnergia: EnergiaEtapa | null = null;
+          if (modo === "energia") {
+            const { data: leadState } = await supabase
+              .from("energia_leads")
+              .select("etapa")
+              .eq("membro_id", session.membro_id)
+              .eq("telefone_lead", telefoneLead)
+              .maybeSingle();
+            etapaEnergia = (leadState?.etapa as EnergiaEtapa | undefined) ?? "aguardando_conta";
+
+            if (etapaEnergia === "aguardando_analise") {
+              if (leadRowId) {
+                await supabase.from("agente_mensagens").update({ processado: true }).eq("id", leadRowId);
+              }
+              break;
+            }
+          }
 
           const { data: config } = await supabase
             .from("agentes_config")
@@ -212,12 +344,47 @@ export async function POST(request: Request) {
                 : configuracoes?.link_recrutamento_padrao;
           }
 
+          // Contexto situacional injetado no prompt e etapa de destino, quando
+          // essa mensagem representa uma transição no funil de energia. O
+          // prompt_sistema (editável em /admin/agentes) já descreve o funil
+          // inteiro — isso só avisa o modelo do que acabou de acontecer.
+          let contextoAdicional: string | null = null;
+          let proximaEtapa: EnergiaEtapa | null = null;
+          // Delimitado por TLD de 2+ letras (em vez de "qualquer coisa até o
+          // próximo espaço") pra não engolir pontuação de frase colada no
+          // final, tipo a vírgula em "meu email é joao@gmail.com, obrigado".
+          const emailMatch = texto.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)*\.[a-zA-Z]{2,}/);
+
+          if (modo === "energia" && etapaEnergia) {
+            if (media && etapaEnergia === "aguardando_conta") {
+              contextoAdicional =
+                "O lead acabou de enviar a conta de luz em anexo (imagem ou PDF). Confirme o recebimento de forma breve e informe que vai encaminhar para análise da equipe agora. Não peça mais nada nesta resposta nem avance para os próximos passos — a análise é manual e ainda não aconteceu.";
+              proximaEtapa = "aguardando_analise";
+            } else if (media && etapaEnergia === "aguardando_documento") {
+              contextoAdicional =
+                "O lead acabou de enviar o documento de identidade (RG ou CNH) em anexo. Confirme o recebimento e peça apenas o e-mail dele para a elaboração do contrato — o telefone já é este WhatsApp, não pergunte de novo.";
+              proximaEtapa = "aguardando_email";
+            } else if (etapaEnergia === "aguardando_email" && emailMatch) {
+              contextoAdicional = `O lead acabou de informar o e-mail (${emailMatch[0]}). Confirme o recebimento e informe que o contrato será elaborado e enviado para esse e-mail em até 4 dias úteis, para assinatura online.`;
+              proximaEtapa = "concluido";
+            } else if (etapaEnergia === "aguardando_documento") {
+              contextoAdicional =
+                "Esta conversa já está na etapa de aguardar o envio do RG ou CNH do lead — a conta de luz já foi aprovada, não peça ela de novo.";
+            } else if (etapaEnergia === "aguardando_email") {
+              contextoAdicional = "Esta conversa já está na etapa de aguardar o e-mail do lead para a elaboração do contrato.";
+            } else if (etapaEnergia === "concluido") {
+              contextoAdicional =
+                "O processo deste lead já está concluído (e-mail recebido, contrato a caminho). Continue a conversa normalmente a partir daqui, sem reiniciar o funil.";
+            }
+          }
+
           const resposta = await gerarRespostaAgente({
             promptSistema: config?.prompt_sistema ?? "",
             nomeAgente: membro?.nome_agente,
             linkCadastro,
             historico,
-            mensagemAtual: texto,
+            mensagemAtual: conteudoLead,
+            contextoAdicional,
           });
 
           await sendEvolutionText(payload.instance, telefoneLead, resposta);
@@ -231,6 +398,14 @@ export async function POST(request: Request) {
 
           if (leadRowId) {
             await supabase.from("agente_mensagens").update({ processado: true }).eq("id", leadRowId);
+          }
+
+          if (proximaEtapa) {
+            await supabase.from("energia_leads").upsert({
+              membro_id: session.membro_id,
+              telefone_lead: telefoneLead,
+              etapa: proximaEtapa,
+            });
           }
 
           await upsertLeadCard(supabase, {
