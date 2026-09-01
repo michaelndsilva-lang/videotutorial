@@ -57,7 +57,12 @@ export async function createEvolutionInstance(
           // webhook busca a mídia à parte via fetchEvolutionMediaBase64.
           base64: false,
           headers: { "x-webhook-secret": process.env.EVOLUTION_WEBHOOK_SECRET ?? "" },
-          events: ["qrcode.updated", "connection.update", "messages.upsert"],
+          // Evolution API v2 valida os eventos contra um enum MAIÚSCULO_UNDERSCORE.
+          // Com os nomes em minúsculo pontuado ("messages.upsert") a criação é
+          // aceita mas nenhum evento é entregue — o webhook fica mudo e a sessão
+          // nunca sai de "aguardando_qr". O corpo entregue ainda usa o formato
+          // pontuado ("messages.upsert"), que é o que o route trata.
+          events: ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT"],
         },
       }),
     });

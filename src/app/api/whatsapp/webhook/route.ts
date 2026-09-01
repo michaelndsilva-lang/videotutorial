@@ -38,6 +38,10 @@ export async function POST(request: Request) {
   }
 
   const raw = (await request.json()) as { event?: string; instance?: string };
+  // A Evolution manda o nome do evento em minúsculo pontuado ("messages.upsert"),
+  // mas instâncias antigas foram cadastradas com o enum MAIÚSCULO_UNDERSCORE e
+  // algumas versões ecoam esse formato no corpo. Normaliza os dois pra um só.
+  const eventName = (raw.event ?? "").toLowerCase().replace(/_/g, ".");
   const supabase = createAdminClient();
 
   const { data: session } = await supabase
@@ -53,7 +57,7 @@ export async function POST(request: Request) {
 
   // Só aqui sabemos que é uma instância conhecida; tratamos o payload como um
   // dos 3 eventos suportados (evento desconhecido cai no `default` abaixo).
-  const payload = raw as EvolutionWebhookEvent;
+  const payload = { ...raw, event: eventName } as EvolutionWebhookEvent;
 
   try {
     switch (payload.event) {
