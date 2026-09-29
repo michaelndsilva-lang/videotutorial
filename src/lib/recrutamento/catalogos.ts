@@ -49,6 +49,26 @@ Quando o lead pedir um desses materiais (siga a indicação de cada um), escreva
 
 const TAG_PDF = /\[\[\s*PDF\s*:\s*([A-ZÇÃÁÉÍÓÚ_ ]+?)\s*\]\]/gi;
 
+// Frase em que o agente afirma que está enviando algo agora ("vou te mandar",
+// "segue", "aqui está"...). Oferta em forma de pergunta não conta.
+const PROMESSA_ENVIO =
+  /\b(vou (te |lhe )?(enviar|mandar)|(te |lhe )?(envio|mando|enviei|mandei)|estou (te |lhe )?(enviando|mandando)|segue|seguem|aqui (est[aá]|vai))\b/i;
+
+// Rede de segurança: o modelo às vezes escreve "vou te mandar o catálogo de
+// perfumaria 👇" e esquece a marcação — o lead ficaria esperando um PDF que
+// nunca chega. Só age sobre frases afirmativas que prometem o envio agora.
+function catalogosPrometidos(texto: string): CatalogoTipo[] {
+  const tipos = new Set<CatalogoTipo>();
+  for (const frase of texto.match(/[^.!?\n]+[.!?]?/g) ?? []) {
+    if (frase.trim().endsWith("?") || !PROMESSA_ENVIO.test(frase)) continue;
+    const f = frase.toLowerCase();
+    const perfumaria = /perfum|fragr[aâ]nci/.test(f);
+    if (perfumaria) tipos.add("linha_perfumaria");
+    if (/guia|cosm[eé]tic/.test(f) || (!perfumaria && /produtos/.test(f))) tipos.add("guia_produtos");
+  }
+  return [...tipos];
+}
+
 // Separa as marcações de PDF do texto que vai para o lead.
 export function extrairCatalogosDaResposta(
   resposta: string,
@@ -61,5 +81,13 @@ export function extrairCatalogosDaResposta(
     if (catalogo && !escolhidos.includes(catalogo)) escolhidos.push(catalogo);
   }
   const texto = resposta.replace(TAG_PDF, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+
+  if (escolhidos.length === 0) {
+    for (const tipo of catalogosPrometidos(texto)) {
+      const catalogo = catalogos.find((c) => c.tipo === tipo);
+      if (catalogo) escolhidos.push(catalogo);
+    }
+  }
+
   return { texto, catalogos: escolhidos };
 }
