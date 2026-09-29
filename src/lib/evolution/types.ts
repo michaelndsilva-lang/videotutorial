@@ -5,13 +5,16 @@
 export type EvolutionCreateInstanceResponse = {
   instance: { instanceName: string; status?: string };
   hash?: string;
-  qrcode?: { base64?: string; code?: string; count?: number };
+  // `pairingCode` só vem quando a instância é criada do zero com `number` no
+  // corpo — é o código de 8 caracteres do fluxo "Conectar com número de telefone".
+  qrcode?: { base64?: string; code?: string; count?: number; pairingCode?: string | null };
 };
 
 export type EvolutionConnectResponse = {
   base64?: string;
   code?: string;
   count?: number;
+  pairingCode?: string | null;
 };
 
 export type EvolutionConnectionState = "created" | "connecting" | "open" | "close";

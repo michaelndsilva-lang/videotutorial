@@ -34,37 +34,43 @@ function normalizeQrBase64(base64?: string): string | null {
   return base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`;
 }
 
+// Corpo do POST /instance/create, compartilhado pelos dois fluxos de conexão
+// (QR e código por número). `extra` injeta campos como `number`, usado só no
+// fluxo de pairing code.
+function instanceCreateBody(instanceName: string, extra?: Record<string, unknown>) {
+  return {
+    instanceName,
+    integration: "WHATSAPP-BAILEYS",
+    qrcode: true,
+    ...extra,
+    webhook: {
+      url: `${process.env.APP_URL}/api/whatsapp/webhook`,
+      // false: mídia (áudio, etc.) não vem embutida em base64 no payload
+      // do webhook — payloads grandes estouravam o limite de corpo do
+      // Vercel Functions (413) e a mensagem nunca chegava ao agente. O
+      // webhook busca a mídia à parte via fetchEvolutionMediaBase64.
+      base64: false,
+      headers: { "x-webhook-secret": process.env.EVOLUTION_WEBHOOK_SECRET ?? "" },
+      // Evolution API v2 valida os eventos contra um enum MAIÚSCULO_UNDERSCORE.
+      // Com os nomes em minúsculo pontuado ("messages.upsert") a criação é
+      // aceita mas nenhum evento é entregue — o webhook fica mudo e a sessão
+      // nunca sai de "aguardando_qr". O corpo entregue ainda usa o formato
+      // pontuado ("messages.upsert"), que é o que o route trata.
+      events: ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT"],
+    },
+  };
+}
+
 // Cria (ou reconecta) a instância do membro e retorna o QR inicial, se a
 // própria criação já o trouxer. Caso não traga, busca via /instance/connect.
 export async function createEvolutionInstance(
   instanceName: string
 ): Promise<{ qrCodeBase64: string | null }> {
-  const webhookUrl = `${process.env.APP_URL}/api/whatsapp/webhook`;
-
   let created: EvolutionCreateInstanceResponse | null = null;
   try {
     created = await evolutionFetch<EvolutionCreateInstanceResponse>("/instance/create", {
       method: "POST",
-      body: JSON.stringify({
-        instanceName,
-        integration: "WHATSAPP-BAILEYS",
-        qrcode: true,
-        webhook: {
-          url: webhookUrl,
-          // false: mídia (áudio, etc.) não vem embutida em base64 no payload
-          // do webhook — payloads grandes estouravam o limite de corpo do
-          // Vercel Functions (413) e a mensagem nunca chegava ao agente. O
-          // webhook busca a mídia à parte via fetchEvolutionMediaBase64.
-          base64: false,
-          headers: { "x-webhook-secret": process.env.EVOLUTION_WEBHOOK_SECRET ?? "" },
-          // Evolution API v2 valida os eventos contra um enum MAIÚSCULO_UNDERSCORE.
-          // Com os nomes em minúsculo pontuado ("messages.upsert") a criação é
-          // aceita mas nenhum evento é entregue — o webhook fica mudo e a sessão
-          // nunca sai de "aguardando_qr". O corpo entregue ainda usa o formato
-          // pontuado ("messages.upsert"), que é o que o route trata.
-          events: ["QRCODE_UPDATED", "CONNECTION_UPDATE", "MESSAGES_UPSERT"],
-        },
-      }),
+      body: JSON.stringify(instanceCreateBody(instanceName)),
     });
   } catch (err) {
     // Instância já existe (ex.: desconexão anterior não removeu o registro na
@@ -83,6 +89,46 @@ export async function createEvolutionInstance(
   }
 
   return { qrCodeBase64 };
+}
+
+export async function deleteEvolutionInstance(instanceName: string): Promise<void> {
+  await evolutionFetch(`/instance/delete/${instanceName}`, { method: "DELETE" });
+}
+
+// Fluxo alternativo ao QR: o WhatsApp mostra menos vezes o aviso de "tentativa
+// de golpe" quando o vínculo é feito por "Conectar com número de telefone".
+// A Evolution só emite o `pairingCode` numa instância recém-criada com o número
+// no corpo — então recriamos a instância do zero (descartando qualquer sessão
+// presa antes) e lemos o código da resposta do /instance/create.
+export async function connectEvolutionInstanceWithPhone(
+  instanceName: string,
+  phoneNumber: string
+): Promise<{ pairingCode: string | null }> {
+  const digits = phoneNumber.replace(/\D/g, "");
+
+  // Best-effort: se a instância não existe, o delete falha — seguimos mesmo assim.
+  try {
+    await deleteEvolutionInstance(instanceName);
+  } catch {
+    // ignorado de propósito
+  }
+
+  const created = await evolutionFetch<EvolutionCreateInstanceResponse>("/instance/create", {
+    method: "POST",
+    body: JSON.stringify(instanceCreateBody(instanceName, { number: digits })),
+  });
+
+  let pairingCode = created.qrcode?.pairingCode ?? null;
+
+  // Fallback: algumas versões só devolvem o código no /instance/connect seguinte.
+  if (!pairingCode) {
+    const connect = await evolutionFetch<EvolutionConnectResponse>(
+      `/instance/connect/${instanceName}?number=${encodeURIComponent(digits)}`
+    );
+    pairingCode = connect.pairingCode ?? null;
+  }
+
+  return { pairingCode };
 }
 
 export async function logoutEvolutionInstance(instanceName: string): Promise<void> {
