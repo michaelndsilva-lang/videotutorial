@@ -93,7 +93,10 @@ export async function atualizarModoAgente(modo: AgenteModo) {
     .from("membros")
     .update({ modo_agente_ativo: modo })
     .eq("usuario_id", user.id);
-  if (error) throw new Error(error.message);
+  if (error) {
+    // Trigger do banco (0023) barra 'sunne' para quem não foi liberado.
+    throw new Error(modo === "sunne" ? "Modo não disponível." : error.message);
+  }
 
   revalidatePath("/membro/agente-ia");
 }

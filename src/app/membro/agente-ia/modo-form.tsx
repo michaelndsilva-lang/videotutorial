@@ -9,9 +9,20 @@ import type { AgenteModo } from "@/lib/types/database.types";
 const MODO_LABEL: Record<AgenteModo, string> = {
   recrutamento: "Recrutamento",
   energia: "Energia",
+  sunne: "SUNNE",
 };
 
-export function ModoForm({ modoAtivo }: { modoAtivo: AgenteModo }) {
+export function ModoForm({
+  modoAtivo,
+  sunneHabilitado,
+}: {
+  modoAtivo: AgenteModo;
+  sunneHabilitado: boolean;
+}) {
+  // SUNNE é exclusivo de membros liberados — para os demais a opção nem existe.
+  const modos = (Object.keys(MODO_LABEL) as AgenteModo[]).filter(
+    (m) => m !== "sunne" || sunneHabilitado
+  );
   const [modo, setModo] = useState(modoAtivo);
   const [isPending, startTransition] = useTransition();
 
@@ -33,7 +44,7 @@ export function ModoForm({ modoAtivo }: { modoAtivo: AgenteModo }) {
   return (
     <Tabs value={modo} onValueChange={handleChange}>
       <TabsList>
-        {(Object.keys(MODO_LABEL) as AgenteModo[]).map((m) => (
+        {modos.map((m) => (
           <TabsTrigger key={m} value={m} disabled={isPending}>
             {MODO_LABEL[m]}
           </TabsTrigger>

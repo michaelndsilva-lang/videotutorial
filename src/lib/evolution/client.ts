@@ -146,6 +146,26 @@ export async function sendEvolutionText(
   });
 }
 
+// Envia mídia (hoje: vídeos do agente SUNNE) a partir de uma URL pública
+// temporária (signed URL do Supabase Storage) — a Evolution baixa o arquivo.
+export async function sendEvolutionMedia(
+  instanceName: string,
+  number: string,
+  media: { url: string; mediatype: "video" | "image" | "document"; mimetype: string; fileName: string; caption?: string }
+): Promise<void> {
+  await evolutionFetch(`/message/sendMedia/${instanceName}`, {
+    method: "POST",
+    body: JSON.stringify({
+      number,
+      mediatype: media.mediatype,
+      mimetype: media.mimetype,
+      media: media.url,
+      fileName: media.fileName,
+      caption: media.caption ?? "",
+    }),
+  });
+}
+
 // Fallback para quando o payload do webhook não trouxe `message.base64`
 // inline (ex.: instância antiga, criada antes de `webhook.base64: true`).
 export async function fetchEvolutionMediaBase64(

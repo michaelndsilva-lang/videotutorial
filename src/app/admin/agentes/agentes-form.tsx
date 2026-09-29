@@ -18,6 +18,7 @@ type AgenteRow = {
 const MODO_LABEL: Record<AgenteModo, string> = {
   recrutamento: "Recrutamento",
   energia: "Energia",
+  sunne: "SUNNE",
 };
 
 function PromptEditor({ row }: { row: AgenteRow }) {

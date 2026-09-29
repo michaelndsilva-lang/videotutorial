@@ -2,11 +2,19 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   fetchEvolutionInstanceInfo,
   fetchEvolutionMediaBase64,
+  sendEvolutionMedia,
   sendEvolutionText,
 } from "@/lib/evolution/client";
 import { gerarRespostaAgente, classificarRespostaAnaliseConta } from "@/lib/ai/agente";
 import { transcreverAudioDoLead } from "@/lib/ai/audio";
 import { normalizeTelefone, upsertLeadCard } from "@/lib/kanban/upsert-lead";
+import {
+  SUNNE_BUCKET,
+  extrairVideosDaResposta,
+  montarBaseConhecimento,
+  montarInstrucaoVideos,
+  type VideoCatalogo,
+} from "@/lib/sunne/materiais";
 import type { EvolutionInboundMessage, EvolutionWebhookEvent } from "@/lib/evolution/types";
 import type { EnergiaEtapa } from "@/lib/types/database.types";
 
@@ -113,10 +121,14 @@ export async function POST(request: Request) {
 
         const { data: membro } = await supabase
           .from("membros")
-          .select("modo_agente_ativo, nome_agente, genero_agente, link_recrutamento, link_energia")
+          .select("modo_agente_ativo, nome_agente, genero_agente, link_recrutamento, link_energia, sunne_habilitado")
           .eq("usuario_id", session.membro_id)
           .single();
-        const modo = membro?.modo_agente_ativo ?? "recrutamento";
+        // Defesa extra: o trigger do banco já impede modo 'sunne' sem a
+        // liberação, mas se ela for revogada com o modo ativo, cai no padrão.
+        const modoConfigurado = membro?.modo_agente_ativo ?? "recrutamento";
+        const modo =
+          modoConfigurado === "sunne" && !membro?.sunne_habilitado ? "recrutamento" : modoConfigurado;
 
         // ------------------------------------------------------------------
         // Mensagens enviadas pelo próprio membro (fromMe), manualmente, no
@@ -322,11 +334,41 @@ export async function POST(request: Request) {
             }
           }
 
-          const { data: config } = await supabase
-            .from("agentes_config")
-            .select("prompt_sistema")
-            .eq("modo", modo)
-            .single();
+          // Prompt: recrutamento/energia usam o prompt mestre compartilhado
+          // (agentes_config, editado pelo admin); o SUNNE é exclusivo do
+          // membro liberado e tem prompt, PDFs de conhecimento e vídeos
+          // próprios (sunne_config/sunne_materiais).
+          let promptSistema = "";
+          let videosSunne: VideoCatalogo[] = [];
+          if (modo === "sunne") {
+            const [{ data: sunneConfig }, { data: materiais }] = await Promise.all([
+              supabase
+                .from("sunne_config")
+                .select("prompt_sistema")
+                .eq("membro_id", session.membro_id)
+                .maybeSingle(),
+              supabase
+                .from("sunne_materiais")
+                .select("id, tipo, titulo, descricao, storage_path, mime_type, conteudo_texto")
+                .eq("membro_id", session.membro_id)
+                .order("created_at"),
+            ]);
+            videosSunne = (materiais ?? []).filter((m) => m.tipo === "video");
+            promptSistema = [
+              sunneConfig?.prompt_sistema ?? "",
+              montarBaseConhecimento((materiais ?? []).filter((m) => m.tipo === "pdf")),
+              montarInstrucaoVideos(videosSunne),
+            ]
+              .filter((bloco): bloco is string => Boolean(bloco?.trim()))
+              .join("\n\n---\n\n");
+          } else {
+            const { data: config } = await supabase
+              .from("agentes_config")
+              .select("prompt_sistema")
+              .eq("modo", modo)
+              .single();
+            promptSistema = config?.prompt_sistema ?? "";
+          }
 
           // Cada membro tem seu próprio link de cadastro/referral (Perfil >
           // Plataforma, "Seu link — Recrutamento/Energia", em membros) — leads
@@ -336,7 +378,7 @@ export async function POST(request: Request) {
           // fallback, em vez de deixar sem link nenhum.
           const linkPessoal = modo === "energia" ? membro?.link_energia : membro?.link_recrutamento;
           let linkCadastro = linkPessoal;
-          if (!linkCadastro) {
+          if (!linkCadastro && modo !== "sunne") {
             const { data: configuracoes } = await supabase
               .from("configuracoes_gerais")
               .select("link_recrutamento_padrao, link_energia_padrao")
@@ -383,23 +425,60 @@ export async function POST(request: Request) {
           }
 
           const resposta = await gerarRespostaAgente({
-            promptSistema: config?.prompt_sistema ?? "",
+            promptSistema,
             nomeAgente: membro?.nome_agente,
             generoAgente: membro?.genero_agente as "masculino" | "feminino" | null | undefined,
             linkCadastro,
             historico,
             mensagemAtual: conteudoLead,
             contextoAdicional,
+            semLinkCadastro: modo === "sunne",
           });
 
-          await sendEvolutionText(payload.instance, telefoneLead, resposta);
+          // SUNNE: a resposta pode trazer marcações [[VIDEO:Vn]] — o texto vai
+          // limpo e o vídeo escolhido segue logo depois, como mídia.
+          const { texto: textoResposta, videos: videosParaEnviar } =
+            modo === "sunne"
+              ? extrairVideosDaResposta(resposta, videosSunne)
+              : { texto: resposta, videos: [] as VideoCatalogo[] };
+
+          if (textoResposta) {
+            await sendEvolutionText(payload.instance, telefoneLead, textoResposta);
+          }
 
           await supabase.from("agente_mensagens").insert({
             membro_id: session.membro_id,
             telefone_lead: telefoneLead,
             remetente: "agente",
-            conteudo: resposta,
+            conteudo: textoResposta || "[vídeo]",
           });
+
+          // Falha no envio do vídeo não derruba a conversa (o texto já foi):
+          // só registra, sem devolver 500 — um retry reenviaria o texto.
+          for (const video of videosParaEnviar) {
+            try {
+              const { data: signed, error: signedError } = await supabase.storage
+                .from(SUNNE_BUCKET)
+                .createSignedUrl(video.storage_path, 60 * 60);
+              if (signedError || !signed) throw signedError ?? new Error("signed URL vazia");
+
+              await sendEvolutionMedia(payload.instance, telefoneLead, {
+                url: signed.signedUrl,
+                mediatype: "video",
+                mimetype: video.mime_type,
+                fileName: `${video.titulo}.mp4`,
+              });
+
+              await supabase.from("agente_mensagens").insert({
+                membro_id: session.membro_id,
+                telefone_lead: telefoneLead,
+                remetente: "agente",
+                conteudo: `[vídeo enviado: ${video.titulo}]`,
+              });
+            } catch (err) {
+              console.error(`Falha ao enviar vídeo SUNNE "${video.titulo}":`, err);
+            }
+          }
 
           if (leadRowId) {
             await supabase.from("agente_mensagens").update({ processado: true }).eq("id", leadRowId);

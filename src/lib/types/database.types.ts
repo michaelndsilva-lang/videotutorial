@@ -430,6 +430,7 @@ export type Database = {
           nome_agente: string | null
           observacoes: string | null
           status: Database["public"]["Enums"]["membro_status"]
+          sunne_habilitado: boolean
           usuario_id: string
         }
         Insert: {
@@ -441,6 +442,7 @@ export type Database = {
           nome_agente?: string | null
           observacoes?: string | null
           status?: Database["public"]["Enums"]["membro_status"]
+          sunne_habilitado?: boolean
           usuario_id: string
         }
         Update: {
@@ -452,6 +454,7 @@ export type Database = {
           nome_agente?: string | null
           observacoes?: string | null
           status?: Database["public"]["Enums"]["membro_status"]
+          sunne_habilitado?: boolean
           usuario_id?: string
         }
         Relationships: [
@@ -514,6 +517,82 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      sunne_config: {
+        Row: {
+          membro_id: string
+          prompt_followup: string
+          prompt_sistema: string
+          updated_at: string
+        }
+        Insert: {
+          membro_id: string
+          prompt_followup?: string
+          prompt_sistema?: string
+          updated_at?: string
+        }
+        Update: {
+          membro_id?: string
+          prompt_followup?: string
+          prompt_sistema?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sunne_config_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: true
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      sunne_materiais: {
+        Row: {
+          conteudo_texto: string | null
+          created_at: string
+          descricao: string
+          id: string
+          membro_id: string
+          mime_type: string
+          storage_path: string
+          tamanho_bytes: number
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          conteudo_texto?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          membro_id: string
+          mime_type: string
+          storage_path: string
+          tamanho_bytes: number
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          conteudo_texto?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          membro_id?: string
+          mime_type?: string
+          storage_path?: string
+          tamanho_bytes?: number
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sunne_materiais_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
           },
         ]
       }
@@ -620,7 +699,7 @@ export type Database = {
       }
     }
     Enums: {
-      agente_modo: "recrutamento" | "energia"
+      agente_modo: "recrutamento" | "energia" | "sunne"
       card_origem: "manual" | "agente_ia"
       formato_conteudo:
         | "reels"
@@ -766,7 +845,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      agente_modo: ["recrutamento", "energia"],
+      agente_modo: ["recrutamento", "energia", "sunne"],
       card_origem: ["manual", "agente_ia"],
       formato_conteudo: [
         "reels",
@@ -812,3 +891,6 @@ export type EnergiaEtapa =
   | "aguardando_documento"
   | "aguardando_email"
   | "concluido"
+
+// sunne_materiais.tipo é `text` com check constraint (migration 0023_agente_sunne).
+export type SunneMaterialTipo = "pdf" | "video"

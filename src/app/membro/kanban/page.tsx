@@ -10,6 +10,7 @@ type AgenteModo = Database["public"]["Enums"]["agente_modo"];
 const BOARD_TITLE: Record<AgenteModo, string> = {
   recrutamento: "Kanban leads recrutamento",
   energia: "Kanban leads energia por assinatura",
+  sunne: "Kanban leads SUNNE",
 };
 
 export default async function MembroKanbanPage() {

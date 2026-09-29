@@ -31,17 +31,30 @@ export async function GET(request: Request) {
     try {
       const { data: membro } = await supabase
         .from("membros")
-        .select("modo_agente_ativo")
+        .select("modo_agente_ativo, sunne_habilitado")
         .eq("usuario_id", conversa.membro_id)
         .single();
       const modo = membro?.modo_agente_ativo ?? "recrutamento";
 
-      const { data: config } = await supabase
-        .from("agentes_config")
-        .select("prompt_followup")
-        .eq("modo", modo)
-        .single();
-      const mensagem = config?.prompt_followup?.trim();
+      // SUNNE tem follow-up próprio, por membro (sunne_config), e só vale
+      // enquanto o membro continua liberado.
+      let mensagem: string | undefined;
+      if (modo === "sunne") {
+        if (!membro?.sunne_habilitado) continue;
+        const { data: sunneConfig } = await supabase
+          .from("sunne_config")
+          .select("prompt_followup")
+          .eq("membro_id", conversa.membro_id)
+          .maybeSingle();
+        mensagem = sunneConfig?.prompt_followup?.trim();
+      } else {
+        const { data: config } = await supabase
+          .from("agentes_config")
+          .select("prompt_followup")
+          .eq("modo", modo)
+          .single();
+        mensagem = config?.prompt_followup?.trim();
+      }
       if (!mensagem) continue; // sem follow-up configurado para este modo
 
       // No modo energia, um lead "aguardando_analise" está pausado esperando

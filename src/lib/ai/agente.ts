@@ -35,6 +35,7 @@ export async function gerarRespostaAgente({
   historico,
   mensagemAtual,
   contextoAdicional,
+  semLinkCadastro = false,
 }: {
   promptSistema: string;
   nomeAgente?: string | null;
@@ -54,6 +55,9 @@ export async function gerarRespostaAgente({
   // lead") — usada pelo fluxo de energia para dar ao modelo contexto que não
   // está no prompt_sistema editável nem no histórico de texto puro.
   contextoAdicional?: string | null;
+  // Agente SUNNE: não existe "link de cadastro" da Atlantica Natural nesse
+  // fluxo, então as instruções de link (que citam a Atlantica) não entram.
+  semLinkCadastro?: boolean;
 }): Promise<string> {
   // Redige URLs de mensagens antigas do próprio agente: já vimos o modelo
   // "ancorar" num link errado do histórico e repeti-lo mesmo com instrução
@@ -178,7 +182,9 @@ O mesmo vale para horário: use a hora atual acima como referência exata para e
         ? `Você está representando um homem nesta conversa${nomeAgente ? ` (${nomeAgente})` : ""}. Escreva SEMPRE em concordância de gênero masculino ao falar de si mesmo (ex.: "consultor", "ocupado", "ficaria feliz"), nunca no feminino.`
         : null;
 
-  const instrucaoLink = linkCadastro
+  const instrucaoLink = semLinkCadastro
+    ? null
+    : linkCadastro
     ? `Seu link de cadastro pessoal (use exatamente esta URL, sem alterar nenhum caractere, sempre que for enviar o "link de cadastro" ao lead):\n${linkCadastro}\n\nIMPORTANTE: qualquer URL diferente desta que apareça no histórico da conversa acima estava ERRADA — nunca repita um link diferente do especificado aqui. Além disso, o histórico usa o texto "${MARCADOR_LINK_REDIGIDO}" no lugar de links já enviados; isso é apenas uma nota interna sua, NUNCA copie esse texto entre parênteses pro lead — sempre escreva a URL completa acima quando for mencionar o link.\n\n${ressalvaOutrosLinks}`
     : `Seu link de cadastro pessoal ainda não foi configurado na plataforma. NUNCA invente, escreva um placeholder (como "[LINK AQUI]") ou um domínio/URL — mesmo que algo pareça ter sido enviado no histórico da conversa, não é um link real. Se o lead pedir o link de cadastro, diga que você vai confirmar esse link certinho com a equipe e já retorna — sem prometer um prazo específico.\n\n${ressalvaOutrosLinks}`;
 
@@ -189,11 +195,11 @@ O mesmo vale para horário: use a hora atual acima como referência exata para e
     instrucaoGenero ? `---\n\n${instrucaoGenero}` : null,
     `---\n\n${instrucaoData}`,
     `---\n\n${instrucaoPerguntaProvocativa}`,
-    `---\n\n${instrucaoLink}`,
+    instrucaoLink ? `---\n\n${instrucaoLink}` : null,
     contextoAdicional ? `---\n\n${contextoAdicional}` : null,
     `---\n\nLembrete final antes de responder: ${instrucaoData}`,
     instrucaoGenero ? `---\n\nLembrete final antes de responder: ${instrucaoGenero}` : null,
-    `---\n\nLembrete final antes de responder: ${instrucaoLink}`,
+    instrucaoLink ? `---\n\nLembrete final antes de responder: ${instrucaoLink}` : null,
     contextoAdicional ? `---\n\nLembrete final antes de responder: ${contextoAdicional}` : null,
   ]
     .filter((bloco): bloco is string => Boolean(bloco))

@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 const MODO_LABEL: Record<string, string> = {
   recrutamento: "Recrutamento",
   energia: "Energia",
+  sunne: "SUNNE",
 };
 
 const WHATSAPP_LABEL: Record<string, string> = {
