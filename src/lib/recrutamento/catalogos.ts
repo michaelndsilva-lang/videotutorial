@@ -3,7 +3,10 @@ import type { CatalogoTipo } from "@/lib/types/database.types";
 // Catálogos em PDF do agente de recrutamento (migration 0024). Compartilhado
 // entre browser (tela do admin) e servidor (webhook) — sem "server-only".
 export const CATALOGOS_BUCKET = "catalogos";
-export const CATALOGO_PDF_MAX_BYTES = 20 * 1024 * 1024;
+// Teto de 50 MB por arquivo do Storage no plano free do Supabase (bucket em 50
+// MB, migration 0025); 45 MB aqui deixa folga. O Guia de Produtos oficial tem
+// ~38 MB e não comprime sem perder legibilidade.
+export const CATALOGO_PDF_MAX_BYTES = 45 * 1024 * 1024;
 
 export const CATALOGOS: Record<
   CatalogoTipo,
