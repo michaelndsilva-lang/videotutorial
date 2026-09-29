@@ -1,14 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { AgentesForm } from "./agentes-form";
+import type { CatalogoRow } from "./catalogos-editor";
 
 export default async function AdminAgentesPage() {
   const supabase = await createClient();
 
-  const { data: rows } = await supabase
-    .from("agentes_config")
-    .select("modo, prompt_sistema, prompt_followup, updated_at")
-    .order("modo");
+  const [{ data: rows }, { data: catalogos }] = await Promise.all([
+    supabase
+      .from("agentes_config")
+      .select("modo, prompt_sistema, prompt_followup, updated_at")
+      .order("modo"),
+    supabase
+      .from("recrutamento_catalogos")
+      .select("tipo, nome_arquivo, tamanho_bytes, updated_at"),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -23,7 +29,7 @@ export default async function AdminAgentesPage() {
           <CardTitle className="text-base">Prompts mestre</CardTitle>
         </CardHeader>
         <CardContent>
-          <AgentesForm rows={rows ?? []} />
+          <AgentesForm rows={rows ?? []} catalogos={(catalogos ?? []) as CatalogoRow[]} />
         </CardContent>
       </Card>
     </div>

@@ -15,8 +15,15 @@ import {
   montarInstrucaoVideos,
   type VideoCatalogo,
 } from "@/lib/sunne/materiais";
+import {
+  CATALOGOS,
+  CATALOGOS_BUCKET,
+  extrairCatalogosDaResposta,
+  montarInstrucaoCatalogos,
+  type CatalogoDisponivel,
+} from "@/lib/recrutamento/catalogos";
 import type { EvolutionInboundMessage, EvolutionWebhookEvent } from "@/lib/evolution/types";
-import type { EnergiaEtapa } from "@/lib/types/database.types";
+import type { CatalogoTipo, EnergiaEtapa } from "@/lib/types/database.types";
 
 export const maxDuration = 60;
 
@@ -340,6 +347,7 @@ export async function POST(request: Request) {
           // próprios (sunne_config/sunne_materiais).
           let promptSistema = "";
           let videosSunne: VideoCatalogo[] = [];
+          let catalogosRecrutamento: CatalogoDisponivel[] = [];
           if (modo === "sunne") {
             const [{ data: sunneConfig }, { data: materiais }] = await Promise.all([
               supabase
@@ -362,12 +370,20 @@ export async function POST(request: Request) {
               .filter((bloco): bloco is string => Boolean(bloco?.trim()))
               .join("\n\n---\n\n");
           } else {
-            const { data: config } = await supabase
-              .from("agentes_config")
-              .select("prompt_sistema")
-              .eq("modo", modo)
-              .single();
-            promptSistema = config?.prompt_sistema ?? "";
+            const [{ data: config }, { data: catalogos }] = await Promise.all([
+              supabase.from("agentes_config").select("prompt_sistema").eq("modo", modo).single(),
+              // Recrutamento: PDFs LINHA DE PERFUMARIA / GUIA DE PRODUTOS
+              // (recrutamento_catalogos, subidos pelo admin em /admin/agentes).
+              modo === "recrutamento"
+                ? supabase.from("recrutamento_catalogos").select("tipo, storage_path")
+                : Promise.resolve({ data: [] as { tipo: string; storage_path: string }[] }),
+            ]);
+            catalogosRecrutamento = (catalogos ?? [])
+              .filter((c) => c.tipo in CATALOGOS)
+              .map((c) => ({ tipo: c.tipo as CatalogoTipo, storage_path: c.storage_path }));
+            promptSistema = [config?.prompt_sistema ?? "", montarInstrucaoCatalogos(catalogosRecrutamento)]
+              .filter((bloco): bloco is string => Boolean(bloco?.trim()))
+              .join("\n\n---\n\n");
           }
 
           // Cada membro tem seu próprio link de cadastro/referral (Perfil >
@@ -437,10 +453,15 @@ export async function POST(request: Request) {
 
           // SUNNE: a resposta pode trazer marcações [[VIDEO:Vn]] — o texto vai
           // limpo e o vídeo escolhido segue logo depois, como mídia.
-          const { texto: textoResposta, videos: videosParaEnviar } =
+          // Recrutamento: idem com as marcações [[PDF:...]] dos catálogos.
+          const { texto: textoSemVideos, videos: videosParaEnviar } =
             modo === "sunne"
               ? extrairVideosDaResposta(resposta, videosSunne)
               : { texto: resposta, videos: [] as VideoCatalogo[] };
+          const { texto: textoResposta, catalogos: catalogosParaEnviar } =
+            modo === "recrutamento"
+              ? extrairCatalogosDaResposta(textoSemVideos, catalogosRecrutamento)
+              : { texto: textoSemVideos, catalogos: [] as CatalogoDisponivel[] };
 
           if (textoResposta) {
             await sendEvolutionText(payload.instance, telefoneLead, textoResposta);
@@ -450,7 +471,7 @@ export async function POST(request: Request) {
             membro_id: session.membro_id,
             telefone_lead: telefoneLead,
             remetente: "agente",
-            conteudo: textoResposta || "[vídeo]",
+            conteudo: textoResposta || (catalogosParaEnviar.length ? "[PDF]" : "[vídeo]"),
           });
 
           // Falha no envio do vídeo não derruba a conversa (o texto já foi):
@@ -477,6 +498,33 @@ export async function POST(request: Request) {
               });
             } catch (err) {
               console.error(`Falha ao enviar vídeo SUNNE "${video.titulo}":`, err);
+            }
+          }
+
+          // Mesma política dos vídeos: falha no PDF não derruba a conversa.
+          for (const catalogo of catalogosParaEnviar) {
+            const { nome } = CATALOGOS[catalogo.tipo];
+            try {
+              const { data: signed, error: signedError } = await supabase.storage
+                .from(CATALOGOS_BUCKET)
+                .createSignedUrl(catalogo.storage_path, 60 * 60);
+              if (signedError || !signed) throw signedError ?? new Error("signed URL vazia");
+
+              await sendEvolutionMedia(payload.instance, telefoneLead, {
+                url: signed.signedUrl,
+                mediatype: "document",
+                mimetype: "application/pdf",
+                fileName: `${nome}.pdf`,
+              });
+
+              await supabase.from("agente_mensagens").insert({
+                membro_id: session.membro_id,
+                telefone_lead: telefoneLead,
+                remetente: "agente",
+                conteudo: `[PDF enviado: ${nome}]`,
+              });
+            } catch (err) {
+              console.error(`Falha ao enviar PDF "${nome}":`, err);
             }
           }
 

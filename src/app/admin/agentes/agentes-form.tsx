@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { atualizarPrompt } from "./actions";
+import { CatalogosEditor, type CatalogoRow } from "./catalogos-editor";
 import type { AgenteModo } from "@/lib/types/database.types";
 
 type AgenteRow = {
@@ -75,7 +76,7 @@ function PromptEditor({ row }: { row: AgenteRow }) {
   );
 }
 
-export function AgentesForm({ rows }: { rows: AgenteRow[] }) {
+export function AgentesForm({ rows, catalogos }: { rows: AgenteRow[]; catalogos: CatalogoRow[] }) {
   return (
     <Tabs defaultValue={rows[0]?.modo}>
       <TabsList>
@@ -86,8 +87,9 @@ export function AgentesForm({ rows }: { rows: AgenteRow[] }) {
         ))}
       </TabsList>
       {rows.map((row) => (
-        <TabsContent key={row.modo} value={row.modo}>
+        <TabsContent key={row.modo} value={row.modo} className="flex flex-col gap-6">
           <PromptEditor row={row} />
+          {row.modo === "recrutamento" ? <CatalogosEditor catalogos={catalogos} /> : null}
         </TabsContent>
       ))}
     </Tabs>

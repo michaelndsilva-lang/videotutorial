@@ -520,6 +520,41 @@ export type Database = {
           },
         ]
       }
+      recrutamento_catalogos: {
+        Row: {
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes: number
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          nome_arquivo: string
+          storage_path: string
+          tamanho_bytes: number
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          nome_arquivo?: string
+          storage_path?: string
+          tamanho_bytes?: number
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recrutamento_catalogos_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sunne_config: {
         Row: {
           membro_id: string
@@ -894,3 +929,6 @@ export type EnergiaEtapa =
 
 // sunne_materiais.tipo é `text` com check constraint (migration 0023_agente_sunne).
 export type SunneMaterialTipo = "pdf" | "video"
+
+// recrutamento_catalogos.tipo é `text` com check constraint (migration 0024_recrutamento_catalogos).
+export type CatalogoTipo = "linha_perfumaria" | "guia_produtos"
