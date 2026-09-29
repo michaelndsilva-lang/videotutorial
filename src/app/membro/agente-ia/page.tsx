@@ -18,7 +18,7 @@ export default async function MembroAgenteIaPage() {
       .single(),
     supabase
       .from("membros")
-      .select("modo_agente_ativo, nome_agente")
+      .select("modo_agente_ativo, nome_agente, genero_agente")
       .eq("usuario_id", user.id)
       .single(),
   ]);
@@ -37,7 +37,10 @@ export default async function MembroAgenteIaPage() {
           <CardDescription>Escaneie o QR Code para vincular seu número.</CardDescription>
         </CardHeader>
         <CardContent>
-          <NomeAgenteForm nomeAgenteInicial={membro?.nome_agente ?? ""} />
+          <NomeAgenteForm
+            nomeAgenteInicial={membro?.nome_agente ?? ""}
+            generoAgenteInicial={(membro?.genero_agente as "masculino" | "feminino" | null) ?? null}
+          />
           <WhatsappPanel
             membroId={user.id}
             sessaoInicial={{

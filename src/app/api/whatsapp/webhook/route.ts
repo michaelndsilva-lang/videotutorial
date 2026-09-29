@@ -113,7 +113,7 @@ export async function POST(request: Request) {
 
         const { data: membro } = await supabase
           .from("membros")
-          .select("modo_agente_ativo, nome_agente, link_recrutamento, link_energia")
+          .select("modo_agente_ativo, nome_agente, genero_agente, link_recrutamento, link_energia")
           .eq("usuario_id", session.membro_id)
           .single();
         const modo = membro?.modo_agente_ativo ?? "recrutamento";
@@ -385,6 +385,7 @@ export async function POST(request: Request) {
           const resposta = await gerarRespostaAgente({
             promptSistema: config?.prompt_sistema ?? "",
             nomeAgente: membro?.nome_agente,
+            generoAgente: membro?.genero_agente as "masculino" | "feminino" | null | undefined,
             linkCadastro,
             historico,
             mensagemAtual: conteudoLead,

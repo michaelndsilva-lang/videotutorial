@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireMembro } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { createEvolutionInstance, logoutEvolutionInstance } from "@/lib/evolution/client";
-import type { AgenteModo } from "@/lib/types/database.types";
+import type { AgenteModo, GeneroAgente } from "@/lib/types/database.types";
 
 export async function conectarWhatsapp() {
   const user = await requireMembro();
@@ -64,7 +64,7 @@ export async function atualizarModoAgente(modo: AgenteModo) {
   revalidatePath("/membro/agente-ia");
 }
 
-export async function atualizarNomeAgente(nome: string) {
+export async function atualizarNomeAgente(nome: string, genero: GeneroAgente | null) {
   const user = await requireMembro();
   const supabase = await createClient();
 
@@ -72,7 +72,7 @@ export async function atualizarNomeAgente(nome: string) {
 
   const { error } = await supabase
     .from("membros")
-    .update({ nome_agente: nomeAgente })
+    .update({ nome_agente: nomeAgente, genero_agente: genero })
     .eq("usuario_id", user.id);
   if (error) throw new Error(error.message);
 

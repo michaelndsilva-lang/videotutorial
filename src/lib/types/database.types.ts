@@ -423,6 +423,7 @@ export type Database = {
       membros: {
         Row: {
           created_at: string
+          genero_agente: string | null
           link_energia: string | null
           link_recrutamento: string | null
           modo_agente_ativo: Database["public"]["Enums"]["agente_modo"]
@@ -433,6 +434,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          genero_agente?: string | null
           link_energia?: string | null
           link_recrutamento?: string | null
           modo_agente_ativo?: Database["public"]["Enums"]["agente_modo"]
@@ -443,6 +445,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          genero_agente?: string | null
           link_energia?: string | null
           link_recrutamento?: string | null
           modo_agente_ativo?: Database["public"]["Enums"]["agente_modo"]
@@ -788,6 +791,8 @@ export const Constants = {
   },
 } as const
 
+// Não é um enum do Postgres (coluna text + check constraint) — não existe em Database["public"]["Enums"].
+export type GeneroAgente = "masculino" | "feminino"
 export type AgenteModo = Database["public"]["Enums"]["agente_modo"]
 export type MembroStatus = Database["public"]["Enums"]["membro_status"]
 export type UserRole = Database["public"]["Enums"]["user_role"]

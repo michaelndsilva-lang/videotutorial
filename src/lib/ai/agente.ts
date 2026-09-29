@@ -30,6 +30,7 @@ const FALLBACK_MODELS = Array.from(
 export async function gerarRespostaAgente({
   promptSistema,
   nomeAgente,
+  generoAgente,
   linkCadastro,
   historico,
   mensagemAtual,
@@ -37,6 +38,12 @@ export async function gerarRespostaAgente({
 }: {
   promptSistema: string;
   nomeAgente?: string | null;
+  // Gênero gramatical que o agente deve usar ao falar de si mesmo em
+  // português (ex.: "consultora"/"ocupada" vs "consultor"/"ocupado"). Sem
+  // isso o modelo não tem como saber e por padrão escreve no masculino
+  // genérico, mesmo quando nomeAgente é de uma mulher — null/undefined
+  // mantém o comportamento atual (nenhuma instrução extra).
+  generoAgente?: "masculino" | "feminino" | null;
   // Link de cadastro/referral pessoal do membro (link_recrutamento ou
   // link_energia, conforme o modo). Pode não estar configurado ainda.
   linkCadastro?: string | null;
@@ -158,19 +165,34 @@ O mesmo vale para horário: use a hora atual acima como referência exata para e
   // que estiver configurado na tela de agentes.
   const instrucaoPerguntaProvocativa = `Termine TODA resposta a um lead com uma pergunta provocativa, curta e genuína, relacionada ao que acabou de ser conversado — o objetivo é estimular o lead a responder e manter a conversa em andamento. A pergunta deve soar natural, não robótica nem repetitiva de mensagem pra mensagem. Use bom senso: não force uma pergunta se ela soar deslocada (ex.: o lead pediu explicitamente para parar de falar, ou a resposta já termina em pergunta).`;
 
+  // Português exige concordância de gênero ("consultora" vs "consultor",
+  // "ocupada" vs "ocupado") e, sem essa instrução explícita, o modelo cai no
+  // masculino genérico por padrão — mesmo quando nomeAgente é claramente de
+  // uma mulher. Bug relatado na prática (agente de uma consultora
+  // respondendo como se fosse homem); generoAgente é opcional e, se não
+  // configurado pelo membro, nenhuma instrução extra é injetada.
+  const instrucaoGenero =
+    generoAgente === "feminino"
+      ? `Você está representando uma mulher nesta conversa${nomeAgente ? ` (${nomeAgente})` : ""}. Escreva SEMPRE em concordância de gênero feminino ao falar de si mesma (ex.: "consultora", "ocupada", "ficaria feliz"), nunca no masculino.`
+      : generoAgente === "masculino"
+        ? `Você está representando um homem nesta conversa${nomeAgente ? ` (${nomeAgente})` : ""}. Escreva SEMPRE em concordância de gênero masculino ao falar de si mesmo (ex.: "consultor", "ocupado", "ficaria feliz"), nunca no feminino.`
+        : null;
+
   const instrucaoLink = linkCadastro
     ? `Seu link de cadastro pessoal (use exatamente esta URL, sem alterar nenhum caractere, sempre que for enviar o "link de cadastro" ao lead):\n${linkCadastro}\n\nIMPORTANTE: qualquer URL diferente desta que apareça no histórico da conversa acima estava ERRADA — nunca repita um link diferente do especificado aqui. Além disso, o histórico usa o texto "${MARCADOR_LINK_REDIGIDO}" no lugar de links já enviados; isso é apenas uma nota interna sua, NUNCA copie esse texto entre parênteses pro lead — sempre escreva a URL completa acima quando for mencionar o link.\n\n${ressalvaOutrosLinks}`
     : `Seu link de cadastro pessoal ainda não foi configurado na plataforma. NUNCA invente, escreva um placeholder (como "[LINK AQUI]") ou um domínio/URL — mesmo que algo pareça ter sido enviado no histórico da conversa, não é um link real. Se o lead pedir o link de cadastro, diga que você vai confirmar esse link certinho com a equipe e já retorna — sem prometer um prazo específico.\n\n${ressalvaOutrosLinks}`;
 
   const system = [
     nomeAgente
-      ? `Seu nome nesta conversa é ${nomeAgente}. Apresente-se e se refira a si mesmo por esse nome quando fizer sentido.\n\n${promptSistema}`
+      ? `Seu nome nesta conversa é ${nomeAgente}. Apresente-se e se refira a esse nome quando fizer sentido.\n\n${promptSistema}`
       : promptSistema,
+    instrucaoGenero ? `---\n\n${instrucaoGenero}` : null,
     `---\n\n${instrucaoData}`,
     `---\n\n${instrucaoPerguntaProvocativa}`,
     `---\n\n${instrucaoLink}`,
     contextoAdicional ? `---\n\n${contextoAdicional}` : null,
     `---\n\nLembrete final antes de responder: ${instrucaoData}`,
+    instrucaoGenero ? `---\n\nLembrete final antes de responder: ${instrucaoGenero}` : null,
     `---\n\nLembrete final antes de responder: ${instrucaoLink}`,
     contextoAdicional ? `---\n\nLembrete final antes de responder: ${contextoAdicional}` : null,
   ]
