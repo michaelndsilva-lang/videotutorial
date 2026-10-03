@@ -1,5 +1,11 @@
 import "server-only";
 import { generateText, type ModelMessage } from "ai";
+import {
+  numerosAutorizados,
+  removerFrasesProblematicas,
+  validarResposta,
+  type ContextoTempo,
+} from "./validar-resposta";
 
 export type HistoricoMensagem = {
   remetente: "lead" | "agente";
@@ -36,6 +42,7 @@ export async function gerarRespostaAgente({
   mensagemAtual,
   contextoAdicional,
   semLinkCadastro = false,
+  restringirValores = false,
 }: {
   promptSistema: string;
   nomeAgente?: string | null;
@@ -58,6 +65,9 @@ export async function gerarRespostaAgente({
   // Agente SUNNE: não existe "link de cadastro" da Atlantica Natural nesse
   // fluxo, então as instruções de link (que citam a Atlantica) não entram.
   semLinkCadastro?: boolean;
+  // Recrutamento: o agente só pode citar valores (preço, lucro, ganho,
+  // percentual) que estão literalmente no prompt — ver validarValores.
+  restringirValores?: boolean;
 }): Promise<string> {
   // Redige URLs de mensagens antigas do próprio agente: já vimos o modelo
   // "ancorar" num link errado do histórico e repeti-lo mesmo com instrução
@@ -144,6 +154,12 @@ Em especial:
   const horaNumerica = Number(
     new Intl.DateTimeFormat("en-US", { timeZone: fusoHorario, hour: "2-digit", hourCycle: "h23" }).format(agora)
   );
+  const minutoNumerico = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: fusoHorario, minute: "2-digit" }).format(agora)
+  );
+  const tempo: ContextoTempo = { hojeISO, hora: horaNumerica, minuto: minutoNumerico };
+  const hojeExtenso = formatadorDia.format(hojeMeiaNoiteUTC);
+  const amanhaExtenso = formatadorDia.format(new Date(hojeMeiaNoiteUTC.getTime() + 86_400_000));
   const periodoDoDia =
     horaNumerica < 6
       ? "madrugada"
@@ -156,7 +172,14 @@ Em especial:
   // atual (às vezes assume fuso do lead, ou um horário genérico tipo
   // "boa tarde" fora de hora). Toda a equipe e os leads operam em
   // horário de Brasília — nunca o fuso de onde o lead escreve.
-  const instrucaoData = `Data e hora atuais (SEMPRE horário de Brasília, America/Sao_Paulo — nunca assuma outro fuso, mesmo que o lead pareça escrever de outra região): agora são ${horaAtualFormatada}, período da ${periodoDoDia}. Calendário dos próximos dias, já calculado — use exatamente estes dias da semana, NUNCA calcule por conta própria:
+  // Destaque curto de hoje/amanhã: mesmo com a tabela abaixo o modelo já
+  // chamou "sexta, 02/10" de "amanhã" às 19h36 da própria sexta e marcou
+  // reunião às 10h desse dia (conversa real, 02/10/2026). Vai também no TOPO
+  // do system prompt, antes do prompt do admin.
+  const destaqueHoje = `HOJE é ${hojeExtenso} e agora são ${horaAtualFormatada} (horário de Brasília). AMANHÃ é ${amanhaExtenso}. Qualquer data anterior a hoje, ou horário de hoje anterior a ${horaAtualFormatada}, JÁ PASSOU — nunca sugira, marque ou confirme reunião nesses momentos.`;
+  const instrucaoData = `${destaqueHoje}
+
+Data e hora atuais (SEMPRE horário de Brasília, America/Sao_Paulo — nunca assuma outro fuso, mesmo que o lead pareça escrever de outra região): agora são ${horaAtualFormatada}, período da ${periodoDoDia}. Calendário dos próximos dias, já calculado — use exatamente estes dias da semana, NUNCA calcule por conta própria:
 ${proximosDias}
 
 Sempre que for mencionar, sugerir ou confirmar QUALQUER data (ex.: "amanhã", "depois de amanhã", "sexta-feira que vem", agendar uma reunião, etc.), copie o dia da semana e a data diretamente da tabela acima em vez de fazer contas de cabeça. Nunca invente ou "chute" um dia da semana que não esteja na tabela. Lembre-se também da regra de agendamento do prompt acima (nunca aos domingos, se aplicável) ao escolher qual dia da tabela sugerir.
@@ -188,7 +211,17 @@ O mesmo vale para horário: use a hora atual acima como referência exata para e
     ? `Seu link de cadastro pessoal (use exatamente esta URL, sem alterar nenhum caractere, sempre que for enviar o "link de cadastro" ao lead):\n${linkCadastro}\n\nIMPORTANTE: qualquer URL diferente desta que apareça no histórico da conversa acima estava ERRADA — nunca repita um link diferente do especificado aqui. Além disso, o histórico usa o texto "${MARCADOR_LINK_REDIGIDO}" no lugar de links já enviados; isso é apenas uma nota interna sua, NUNCA copie esse texto entre parênteses pro lead — sempre escreva a URL completa acima quando for mencionar o link.\n\n${ressalvaOutrosLinks}`
     : `Seu link de cadastro pessoal ainda não foi configurado na plataforma. NUNCA invente, escreva um placeholder (como "[LINK AQUI]") ou um domínio/URL — mesmo que algo pareça ter sido enviado no histórico da conversa, não é um link real. Se o lead pedir o link de cadastro, diga que você vai confirmar esse link certinho com a equipe e já retorna — sem prometer um prazo específico.\n\n${ressalvaOutrosLinks}`;
 
+  // Recrutamento: o modelo inventava preço/margem de produtos específicos
+  // ("The Boss 100 ml R$ 67, revende por R$ 115 a R$ 120"), tamanhos que não
+  // existem ("15ml, 30ml e 50ml") e faixas de preço do catálogo. Só os
+  // números do prompt do admin são autorizados — validarValores confere isso
+  // no texto gerado; esta instrução é a primeira linha de defesa.
+  const instrucaoValores = restringirValores
+    ? `REGRA ABSOLUTA SOBRE NÚMEROS: você só pode citar valores em dinheiro, preços, lucros, ganhos, margens, comissões, percentuais e faturamentos que aparecem LITERALMENTE nas suas instruções acima. NUNCA invente, estime, arredonde, calcule novos exemplos nem dê faixas ("em torno de", "cerca de", "entre R$ X e R$ Y") para nenhum outro produto, tamanho ou cenário. Se o lead perguntar o preço ou o ganho de um produto específico que não está nas suas instruções (ex.: um perfume de 100 ml, um perfume específico do catálogo), diga que o preço de cada produto está no catálogo e que você confirma o valor exato com precisão — sem chutar número nenhum. Também não invente tamanhos/versões de produtos.`
+    : null;
+
   const system = [
+    `${destaqueHoje}\n\n---`,
     nomeAgente
       ? `Seu nome nesta conversa é ${nomeAgente}. Apresente-se e se refira a esse nome quando fizer sentido.\n\n${promptSistema}`
       : promptSistema,
@@ -196,8 +229,10 @@ O mesmo vale para horário: use a hora atual acima como referência exata para e
     `---\n\n${instrucaoData}`,
     `---\n\n${instrucaoPerguntaProvocativa}`,
     instrucaoLink ? `---\n\n${instrucaoLink}` : null,
+    instrucaoValores ? `---\n\n${instrucaoValores}` : null,
     contextoAdicional ? `---\n\n${contextoAdicional}` : null,
     `---\n\nLembrete final antes de responder: ${instrucaoData}`,
+    instrucaoValores ? `---\n\nLembrete final antes de responder: ${instrucaoValores}` : null,
     instrucaoGenero ? `---\n\nLembrete final antes de responder: ${instrucaoGenero}` : null,
     instrucaoLink ? `---\n\nLembrete final antes de responder: ${instrucaoLink}` : null,
     contextoAdicional ? `---\n\nLembrete final antes de responder: ${contextoAdicional}` : null,
@@ -216,18 +251,50 @@ O mesmo vale para horário: use a hora atual acima como referência exata para e
     return text.split(MARCADOR_LINK_REDIGIDO).join(linkCadastro || "");
   }
 
-  let ultimoErro: unknown;
-  for (const model of FALLBACK_MODELS) {
-    try {
-      const { text } = await generateText({ model, system, messages });
-      return corrigirVazamentoDoMarcador(text);
-    } catch (err) {
-      ultimoErro = err;
-      console.error(`Falha ao gerar resposta com o modelo ${model}:`, err);
+  async function gerar(systemPrompt: string): Promise<string> {
+    let ultimoErro: unknown;
+    for (const model of FALLBACK_MODELS) {
+      try {
+        const { text } = await generateText({ model, system: systemPrompt, messages });
+        return corrigirVazamentoDoMarcador(text);
+      } catch (err) {
+        ultimoErro = err;
+        console.error(`Falha ao gerar resposta com o modelo ${model}:`, err);
+      }
     }
+    throw ultimoErro;
   }
 
-  throw ultimoErro;
+  // Confere datas (passadas, dia da semana trocado, "amanhã" errado, horário
+  // de hoje que já passou) e, no recrutamento, valores fora do prompt. Se
+  // achar erro, refaz a resposta dizendo exatamente o que estava errado; se
+  // mesmo assim persistir, corta só as frases problemáticas.
+  const autorizados = restringirValores ? numerosAutorizados(promptSistema, contextoAdicional) : null;
+  const MAX_TENTATIVAS_CORRECAO = 2;
+  let resposta = await gerar(system);
+  for (let tentativa = 0; tentativa < MAX_TENTATIVAS_CORRECAO; tentativa++) {
+    const problemas = validarResposta(resposta, tempo, autorizados);
+    if (!problemas.length) return resposta;
+    console.warn("Resposta do agente reprovada na validação, regenerando:", { resposta, problemas });
+    const correcao = `CORREÇÃO OBRIGATÓRIA: você já tinha escrito a resposta abaixo, mas ela foi DESCARTADA (não foi enviada ao lead) porque tem erros:
+${problemas.map((p) => `- ${p.descricao}`).join("\n")}
+
+Resposta descartada:
+"""
+${resposta}
+"""
+
+Escreva uma nova resposta para a última mensagem do lead, sem esses erros. ${destaqueHoje}`;
+    resposta = await gerar(`${system}\n\n---\n\n${correcao}`);
+  }
+
+  const problemasFinais = validarResposta(resposta, tempo, autorizados);
+  if (!problemasFinais.length) return resposta;
+  console.error("Resposta do agente segue com erro após regenerar; removendo frases:", {
+    resposta,
+    problemas: problemasFinais,
+  });
+  return removerFrasesProblematicas(resposta, tempo, autorizados);
 }
 
 // Classifica uma mensagem manual do membro (enviada do próprio WhatsApp dele,

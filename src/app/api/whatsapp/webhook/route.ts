@@ -449,6 +449,7 @@ export async function POST(request: Request) {
             mensagemAtual: conteudoLead,
             contextoAdicional,
             semLinkCadastro: modo === "sunne",
+            restringirValores: modo === "recrutamento",
           });
 
           // SUNNE: a resposta pode trazer marcações [[VIDEO:Vn]] — o texto vai
