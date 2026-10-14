@@ -15,6 +15,7 @@ import {
   FolderOpen,
   MessageSquareText,
   Menu,
+  Route,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/admin/membros", label: "Membros", icon: Users, principal: true },
       { href: "/admin/agentes", label: "Agentes", icon: Bot, principal: true },
       { href: "/admin/conteudo", label: "Conteúdo", icon: Sparkles, principal: true },
+      { href: "/admin/trilha", label: "Trilha", icon: Route },
       { href: "/admin/scripts", label: "Scripts", icon: MessageSquareText },
       { href: "/admin/materiais", label: "Materiais", icon: FolderOpen },
       { href: "/admin/configuracoes", label: "Config.", icon: Settings },
@@ -58,6 +60,7 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/membro/kanban", label: "Kanban", icon: KanbanSquare, principal: true },
       { href: "/membro/scripts", label: "Scripts", icon: MessageSquareText, principal: true },
       { href: "/membro/agente-ia", label: "Agente IA", icon: Bot, principal: true },
+      { href: "/membro/trilha", label: "Trilha", icon: Route },
       { href: "/membro/conteudo", label: "Conteúdo", icon: Sparkles },
       { href: "/membro/materiais", label: "Materiais", icon: FolderOpen },
       { href: "/membro/perfil", label: "Perfil", icon: UserCircle },

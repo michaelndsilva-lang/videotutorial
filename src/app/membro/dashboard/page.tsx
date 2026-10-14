@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { LeadOriginChart } from "@/components/charts/lead-origin-chart";
 import { LeadStageChart } from "@/components/charts/lead-stage-chart";
 import { cn } from "@/lib/utils";
+import { montarTrilha } from "@/lib/trilha/progresso";
 
 const MODO_LABEL: Record<string, string> = {
   recrutamento: "Recrutamento",
@@ -95,8 +96,14 @@ export default async function MembroDashboardPage() {
     .eq("membro_id", user.id);
   const boardIds = (boards ?? []).map((b) => b.id);
 
-  const [{ data: columns }, { data: cards }, { data: membro }, { data: whatsapp }] =
-    await Promise.all([
+  const [
+    { data: columns },
+    { data: cards },
+    { data: membro },
+    { data: whatsapp },
+    { data: missoes },
+    { data: progresso },
+  ] = await Promise.all([
       boardIds.length > 0
         ? supabase
             .from("kanban_columns")
@@ -109,7 +116,10 @@ export default async function MembroDashboardPage() {
         : Promise.resolve({ data: [] }),
       supabase.from("membros").select("modo_agente_ativo").eq("usuario_id", user.id).single(),
       supabase.from("whatsapp_sessions").select("status").eq("membro_id", user.id).single(),
+      supabase.from("missoes").select("id, dia, ordem"),
+      supabase.from("missao_progresso").select("missao_id").eq("membro_id", user.id),
     ]);
+  const trilha = montarTrilha(missoes ?? [], new Set((progresso ?? []).map((p) => p.missao_id)));
 
   const totalLeads = cards?.length ?? 0;
   const manual = cards?.filter((c) => c.origem === "manual").length ?? 0;
@@ -148,6 +158,31 @@ export default async function MembroDashboardPage() {
         title={`Olá, ${user.email?.split("@")[0]}`}
         description="Aqui está o resumo do seu dia."
       />
+
+      {trilha.total > 0 && !trilha.concluida && (
+        <Link
+          href="/membro/trilha"
+          className="group flex flex-col gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4 transition-colors hover:bg-amber-500/10"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex flex-col">
+              <span className="text-xs font-semibold tracking-[0.15em] text-amber-700 uppercase dark:text-amber-400">
+                Primeiros 7 dias
+              </span>
+              <span className="font-medium">
+                {trilha.feitas === 0 ? "Comece sua trilha" : `Continue no dia ${trilha.diaAtual}`}
+              </span>
+            </span>
+            <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div className="h-full rounded-full bg-amber-500" style={{ width: `${trilha.percentual}%` }} />
+          </div>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {trilha.feitas}/{trilha.total} missões concluídas
+          </span>
+        </Link>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard icon={KanbanSquare} label="Leads no Kanban" value={totalLeads} accent="gold" />

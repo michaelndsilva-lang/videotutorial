@@ -589,6 +589,81 @@ export type Database = {
           },
         ]
       }
+      missao_progresso: {
+        Row: {
+          concluido_em: string
+          membro_id: string
+          missao_id: string
+          resposta: string | null
+        }
+        Insert: {
+          concluido_em?: string
+          membro_id: string
+          missao_id: string
+          resposta?: string | null
+        }
+        Update: {
+          concluido_em?: string
+          membro_id?: string
+          missao_id?: string
+          resposta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "missao_progresso_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "missao_progresso_missao_id_fkey"
+            columns: ["missao_id"]
+            isOneToOne: false
+            referencedRelation: "missoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      missoes: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string
+          dia: number
+          id: string
+          ordem: number
+          tipo_tarefa: string
+          titulo: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string
+          dia: number
+          id?: string
+          ordem?: number
+          tipo_tarefa?: string
+          titulo: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string
+          dia?: number
+          id?: string
+          ordem?: number
+          tipo_tarefa?: string
+          titulo?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       perfil_conteudo: {
         Row: {
           cidade: string | null
@@ -1213,6 +1288,10 @@ export type EnergiaEtapa =
 
 // sunne_materiais.tipo é `text` com check constraint (migration 0023_agente_sunne).
 export type SunneMaterialTipo = "pdf" | "video"
+
+// missoes.tipo_tarefa é `text` com check constraint (migration 0031_trilha).
+export type TipoTarefa = "assistir" | "executar" | "responder"
+export type Missao = Database["public"]["Tables"]["missoes"]["Row"]
 
 // materiais.tipo é `text` com check constraint (migration 0029_materiais).
 export type MaterialTipo = "pdf" | "apresentacao" | "imagem" | "video"
