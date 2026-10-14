@@ -143,6 +143,83 @@ export type Database = {
           },
         ]
       }
+      aula_progresso: {
+        Row: {
+          aula_id: string
+          concluido_em: string
+          membro_id: string
+        }
+        Insert: {
+          aula_id: string
+          concluido_em?: string
+          membro_id: string
+        }
+        Update: {
+          aula_id?: string
+          concluido_em?: string
+          membro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aula_progresso_aula_id_fkey"
+            columns: ["aula_id"]
+            isOneToOne: false
+            referencedRelation: "aulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aula_progresso_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      aulas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          curso_id: string
+          descricao: string
+          id: string
+          ordem: number
+          titulo: string
+          updated_at: string
+          video_url: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          curso_id: string
+          descricao?: string
+          id?: string
+          ordem?: number
+          titulo: string
+          updated_at?: string
+          video_url: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          curso_id?: string
+          descricao?: string
+          id?: string
+          ordem?: number
+          titulo?: string
+          updated_at?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aulas_curso_id_fkey"
+            columns: ["curso_id"]
+            isOneToOne: false
+            referencedRelation: "cursos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       configuracoes_gerais: {
         Row: {
           creditos_mensais_padrao: number
@@ -320,6 +397,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cursos: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          descricao: string
+          id: string
+          ordem: number
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          ordem?: number
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          descricao?: string
+          id?: string
+          ordem?: number
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       energia_leads: {
         Row: {
