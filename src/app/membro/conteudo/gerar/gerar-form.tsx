@@ -57,10 +57,18 @@ function SelectorCard({
   );
 }
 
-export function GerarForm({ saldoInicial }: { saldoInicial: number | null }) {
-  const [objetivo, setObjetivo] = useState<ObjetivoConteudo | null>(null);
+export function GerarForm({
+  saldoInicial,
+  objetivoInicial = null,
+  temaInicial = "",
+}: {
+  saldoInicial: number | null;
+  objetivoInicial?: ObjetivoConteudo | null;
+  temaInicial?: string;
+}) {
+  const [objetivo, setObjetivo] = useState<ObjetivoConteudo | null>(objetivoInicial);
   const [formato, setFormato] = useState<FormatoConteudo | null>(null);
-  const [temaLivre, setTemaLivre] = useState("");
+  const [temaLivre, setTemaLivre] = useState(temaInicial);
   const [saldo, setSaldo] = useState(saldoInicial);
   const [variacoes, setVariacoes] = useState<VariacaoState[]>([]);
   const [formatoGerado, setFormatoGerado] = useState<FormatoConteudo | null>(null);

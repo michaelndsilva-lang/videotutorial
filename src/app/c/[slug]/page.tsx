@@ -6,6 +6,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { carregarPaginaPublica } from "@/lib/pagina/carregar";
 import { TEXTO_CONSENTIMENTO } from "@/lib/leads/capturar";
 import { LeadForm } from "./lead-form";
+import { carregarCatalogoPublico } from "@/lib/catalogo/publico";
+import { precoBRL } from "@/lib/catalogo/produtos";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -34,6 +36,14 @@ export default async function PaginaPessoal({ params }: Props) {
   await createAdminClient()
     .rpc("registrar_visita_pagina", { p_slug: slug })
     .then(({ error }) => error && console.error("Falha ao contar visita:", error));
+
+  // Vitrine: destaques primeiro, até 6 produtos.
+  const vitrine = pagina.mostrarProdutos
+    ? (await carregarCatalogoPublico())
+        .slice()
+        .sort((a, b) => Number(b.destaque) - Number(a.destaque))
+        .slice(0, 6)
+    : [];
 
   const interesses = [
     ...(pagina.mostrarOportunidade ? (["negocio"] as const) : []),
@@ -134,6 +144,39 @@ export default async function PaginaPessoal({ params }: Props) {
                   Cosméticos ozonizados, suplementos e perfumaria fina.
                 </p>
               </div>
+            </div>
+          )}
+          {vitrine.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {vitrine.map((p) => (
+                  <li key={p.id}>
+                    <a
+                      href={`/c/${pagina.slug}/produto/${p.id}`}
+                      className="flex h-full flex-col overflow-hidden rounded-xl border transition-colors hover:border-amber-500/60"
+                    >
+                      <div className="aspect-square bg-muted">
+                        {p.capa && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={p.capa} alt="" loading="lazy" className="h-full w-full object-cover" />
+                        )}
+                      </div>
+                      <div className="flex flex-1 flex-col gap-0.5 p-2.5">
+                        <span className="text-sm leading-tight font-medium">{p.nome}</span>
+                        {p.preco != null && (
+                          <span className="mt-auto text-sm font-semibold tabular-nums">{precoBRL(p.preco)}</span>
+                        )}
+                      </div>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <a
+                href={`/c/${pagina.slug}/produtos`}
+                className="w-fit text-sm font-medium text-amber-700 underline underline-offset-2 dark:text-amber-400"
+              >
+                Ver todos os produtos
+              </a>
             </div>
           )}
         </section>

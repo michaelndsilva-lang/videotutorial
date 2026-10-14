@@ -20,6 +20,8 @@ import {
   GraduationCap,
   Globe,
   Calculator,
+  ShoppingBag,
+  Package,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -55,6 +57,7 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/admin/treinamentos", label: "ATL FLIX", icon: Clapperboard },
       { href: "/admin/mentor", label: "Mentor IA", icon: GraduationCap },
       { href: "/admin/scripts", label: "Scripts", icon: MessageSquareText },
+      { href: "/admin/produtos", label: "Produtos", icon: Package },
       { href: "/admin/materiais", label: "Materiais", icon: FolderOpen },
       { href: "/admin/configuracoes", label: "Config.", icon: Settings },
     ],
@@ -68,6 +71,7 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/membro/agente-ia", label: "Agente IA", icon: Bot, principal: true },
       { href: "/membro/minha-pagina", label: "Minha página", icon: Globe },
       { href: "/membro/simulador", label: "Simulador", icon: Calculator },
+      { href: "/membro/catalogo", label: "Catálogo", icon: ShoppingBag },
       { href: "/membro/trilha", label: "Trilha", icon: Route },
       { href: "/membro/treinamentos", label: "ATL FLIX", icon: Clapperboard },
       { href: "/membro/mentor", label: "Mentor IA", icon: GraduationCap },

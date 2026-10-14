@@ -12,7 +12,7 @@ export default async function MembroPerfilPage() {
 
   const { data: membro } = await supabase
     .from("membros")
-    .select("link_recrutamento, link_energia")
+    .select("link_recrutamento, link_energia, link_loja")
     .eq("usuario_id", user.id)
     .single();
 
@@ -49,6 +49,7 @@ export default async function MembroPerfilPage() {
             <PlataformaForm
               linkRecrutamento={membro?.link_recrutamento ?? ""}
               linkEnergia={membro?.link_energia ?? ""}
+              linkLoja={membro?.link_loja ?? ""}
             />
           </CardContent>
         </Card>

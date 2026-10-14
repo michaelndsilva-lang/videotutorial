@@ -751,6 +751,7 @@ export type Database = {
           created_at: string
           genero_agente: string | null
           link_energia: string | null
+          link_loja: string | null
           link_recrutamento: string | null
           modo_agente_ativo: Database["public"]["Enums"]["agente_modo"]
           motivo_status: string | null
@@ -766,6 +767,7 @@ export type Database = {
           created_at?: string
           genero_agente?: string | null
           link_energia?: string | null
+          link_loja?: string | null
           link_recrutamento?: string | null
           modo_agente_ativo?: Database["public"]["Enums"]["agente_modo"]
           motivo_status?: string | null
@@ -781,6 +783,7 @@ export type Database = {
           created_at?: string
           genero_agente?: string | null
           link_energia?: string | null
+          link_loja?: string | null
           link_recrutamento?: string | null
           modo_agente_ativo?: Database["public"]["Enums"]["agente_modo"]
           motivo_status?: string | null
@@ -1138,6 +1141,155 @@ export type Database = {
             columns: ["usuario_id"]
             isOneToOne: true
             referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_categorias: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
+      produto_cliques: {
+        Row: {
+          created_at: string
+          id: string
+          membro_id: string
+          produto_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          membro_id: string
+          produto_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          membro_id?: string
+          produto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_cliques_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "produto_cliques_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_scripts: {
+        Row: {
+          produto_id: string
+          script_id: string
+        }
+        Insert: {
+          produto_id: string
+          script_id: string
+        }
+        Update: {
+          produto_id?: string
+          script_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_scripts_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_scripts_script_id_fkey"
+            columns: ["script_id"]
+            isOneToOne: false
+            referencedRelation: "scripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          ativo: boolean
+          beneficios: string[]
+          categoria_id: string
+          created_at: string
+          descricao_completa: string
+          descricao_curta: string
+          destaque: boolean
+          id: string
+          imagens: string[]
+          modo_de_uso: string
+          nome: string
+          ordem: number
+          preco_referencia: number | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          beneficios?: string[]
+          categoria_id: string
+          created_at?: string
+          descricao_completa?: string
+          descricao_curta?: string
+          destaque?: boolean
+          id?: string
+          imagens?: string[]
+          modo_de_uso?: string
+          nome: string
+          ordem?: number
+          preco_referencia?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          beneficios?: string[]
+          categoria_id?: string
+          created_at?: string
+          descricao_completa?: string
+          descricao_curta?: string
+          destaque?: boolean
+          id?: string
+          imagens?: string[]
+          modo_de_uso?: string
+          nome?: string
+          ordem?: number
+          preco_referencia?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "produto_categorias"
             referencedColumns: ["id"]
           },
         ]

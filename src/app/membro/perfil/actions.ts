@@ -7,7 +7,13 @@ import { requireMembroAprovado } from "@/lib/auth/guards";
 export async function atualizarLinksPessoais(input: {
   linkRecrutamento: string;
   linkEnergia: string;
+  linkLoja: string;
 }) {
+  const linkLoja = input.linkLoja.trim() || null;
+  if (linkLoja && !/^https:\/\/\S+$/i.test(linkLoja)) {
+    throw new Error("O link da loja precisa começar com https://");
+  }
+
   const user = await requireMembroAprovado();
   const supabase = await createClient();
 
@@ -16,6 +22,7 @@ export async function atualizarLinksPessoais(input: {
     .update({
       link_recrutamento: input.linkRecrutamento.trim() || null,
       link_energia: input.linkEnergia.trim() || null,
+      link_loja: linkLoja,
     })
     .eq("usuario_id", user.id);
 
@@ -24,4 +31,5 @@ export async function atualizarLinksPessoais(input: {
   }
 
   revalidatePath("/membro/perfil");
+  revalidatePath("/membro/catalogo", "layout");
 }

@@ -21,12 +21,16 @@ export function LeadForm({
   interesses,
   interesseInicial,
   textoConsentimento,
+  produtoId,
+  textoBotao,
 }: {
   slug: string;
   primeiroNome: string;
   interesses: ("negocio" | "energia" | "produtos")[];
   interesseInicial?: "negocio" | "energia" | "produtos";
   textoConsentimento: string;
+  produtoId?: string;
+  textoBotao?: string;
 }) {
   const [abertoEm] = useState(() => Date.now());
   const [interesse, setInteresse] = useState(interesseInicial ?? interesses[0] ?? "negocio");
@@ -56,6 +60,7 @@ export function LeadForm({
         const fd = new FormData(e.currentTarget);
         fd.set("interesse", interesse);
         fd.set("t", String(abertoEm));
+        if (produtoId) fd.set("produto_id", produtoId);
         setErro(null);
         startTransition(async () => {
           const r = await enviarLeadPagina(slug, fd);
@@ -122,7 +127,7 @@ export function LeadForm({
       {erro && <p className="text-sm text-destructive">{erro}</p>}
       <Button type="submit" size="lg" disabled={isPending}>
         {isPending && <Loader2 className="size-4 animate-spin" />}
-        Quero que {primeiroNome} me chame
+        {textoBotao ?? `Quero que ${primeiroNome} me chame`}
       </Button>
     </form>
   );

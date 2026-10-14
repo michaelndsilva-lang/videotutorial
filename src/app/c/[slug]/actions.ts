@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { capturarLead, type Interesse, type ResultadoCaptura } from "@/lib/leads/capturar";
 import { carregarPaginaPublica } from "@/lib/pagina/carregar";
 import { carregarConfigSimulador } from "@/lib/energia/proposta";
+import { carregarProdutoPublico } from "@/lib/catalogo/publico";
 import { brl, simular } from "@/lib/energia/simulador";
 
 const INTERESSES: Interesse[] = ["negocio", "energia", "produtos"];
@@ -21,6 +22,22 @@ export async function enviarLeadPagina(slug: string, formData: FormData): Promis
   const interesse = String(formData.get("interesse") ?? "negocio") as Interesse;
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null;
+
+  // "Tenho interesse" na página de um produto: lead do catálogo com o produto anotado.
+  const produtoId = String(formData.get("produto_id") ?? "");
+  const produto = produtoId && pagina.mostrarProdutos ? await carregarProdutoPublico(produtoId) : null;
+  if (produto) {
+    return capturarLead({
+      membroId: pagina.membroId,
+      origem: "catalogo",
+      nome: String(formData.get("nome") ?? ""),
+      telefone: String(formData.get("telefone") ?? ""),
+      interesse: "produtos",
+      observacao: `Produto: ${produto.nome}`,
+      consentiu: formData.get("consentimento") === "on",
+      ip,
+    });
+  }
 
   return capturarLead({
     membroId: pagina.membroId,

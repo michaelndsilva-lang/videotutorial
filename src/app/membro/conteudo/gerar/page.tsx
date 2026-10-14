@@ -5,7 +5,16 @@ import { requireMembro } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import { GerarForm } from "./gerar-form";
 
-export default async function GerarConteudoPage() {
+// ?objetivo=...&tema=... vem do catálogo ("Gerar conteúdo deste produto").
+const OBJETIVOS_VALIDOS = ["recrutamento", "energia_assinatura", "venda_produto", "autoridade_pessoal"] as const;
+
+export default async function GerarConteudoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ objetivo?: string; tema?: string }>;
+}) {
+  const { objetivo, tema } = await searchParams;
+  const objetivoInicial = OBJETIVOS_VALIDOS.find((o) => o === objetivo) ?? null;
   const user = await requireMembro();
   const supabase = await createClient();
 
@@ -50,7 +59,11 @@ export default async function GerarConteudoPage() {
         title="Gerar Conteúdo"
         description="Escolha o objetivo e o formato — o motor cuida do resto."
       />
-      <GerarForm saldoInicial={saldoInicial} />
+      <GerarForm
+        saldoInicial={saldoInicial}
+        objetivoInicial={objetivoInicial}
+        temaInicial={(tema ?? "").slice(0, 200)}
+      />
     </div>
   );
 }

@@ -10,12 +10,15 @@ import { atualizarLinksPessoais } from "./actions";
 export function PlataformaForm({
   linkRecrutamento,
   linkEnergia,
+  linkLoja,
 }: {
   linkRecrutamento: string;
   linkEnergia: string;
+  linkLoja: string;
 }) {
   const [linkRecrutamentoValue, setLinkRecrutamentoValue] = useState(linkRecrutamento);
   const [linkEnergiaValue, setLinkEnergiaValue] = useState(linkEnergia);
+  const [linkLojaValue, setLinkLojaValue] = useState(linkLoja);
   const [isPending, startTransition] = useTransition();
 
   function handleSalvar() {
@@ -24,6 +27,7 @@ export function PlataformaForm({
         await atualizarLinksPessoais({
           linkRecrutamento: linkRecrutamentoValue,
           linkEnergia: linkEnergiaValue,
+          linkLoja: linkLojaValue,
         });
         toast.success("Links salvos.");
       } catch (error) {
@@ -49,6 +53,15 @@ export function PlataformaForm({
           id="link_energia"
           value={linkEnergiaValue}
           onChange={(e) => setLinkEnergiaValue(e.target.value)}
+          placeholder="https://..."
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="link_loja">Seu link — Loja (compra de produtos)</Label>
+        <Input
+          id="link_loja"
+          value={linkLojaValue}
+          onChange={(e) => setLinkLojaValue(e.target.value)}
           placeholder="https://..."
         />
       </div>

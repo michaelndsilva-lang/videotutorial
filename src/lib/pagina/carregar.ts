@@ -12,6 +12,7 @@ export type PaginaPublica = {
   whatsapp: string | null;
   linkRecrutamento: string | null;
   linkEnergia: string | null;
+  linkLoja: string | null;
   mostrarOportunidade: boolean;
   mostrarEnergia: boolean;
   mostrarProdutos: boolean;
@@ -37,7 +38,7 @@ export const carregarPaginaPublica = cache(async (slug: string): Promise<PaginaP
   if (!p?.publicada) return null;
 
   const [{ data: membro }, { data: usuario }, { data: perfil }] = await Promise.all([
-    admin.from("membros").select("status, link_recrutamento, link_energia").eq("usuario_id", p.membro_id).single(),
+    admin.from("membros").select("status, link_recrutamento, link_energia, link_loja").eq("usuario_id", p.membro_id).single(),
     admin.from("usuarios").select("nome_completo").eq("id", p.membro_id).single(),
     admin.from("perfil_conteudo").select("nome_exibicao").eq("usuario_id", p.membro_id).maybeSingle(),
   ]);
@@ -54,6 +55,7 @@ export const carregarPaginaPublica = cache(async (slug: string): Promise<PaginaP
     whatsapp: p.whatsapp,
     linkRecrutamento: membro.link_recrutamento,
     linkEnergia: membro.link_energia,
+    linkLoja: membro.link_loja,
     mostrarOportunidade: p.mostrar_oportunidade,
     mostrarEnergia: p.mostrar_energia,
     mostrarProdutos: p.mostrar_produtos,
