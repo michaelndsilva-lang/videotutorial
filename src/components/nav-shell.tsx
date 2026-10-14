@@ -17,6 +17,7 @@ import {
   Menu,
   Route,
   Clapperboard,
+  GraduationCap,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/admin/conteudo", label: "Conteúdo", icon: Sparkles, principal: true },
       { href: "/admin/trilha", label: "Trilha", icon: Route },
       { href: "/admin/treinamentos", label: "ATL FLIX", icon: Clapperboard },
+      { href: "/admin/mentor", label: "Mentor IA", icon: GraduationCap },
       { href: "/admin/scripts", label: "Scripts", icon: MessageSquareText },
       { href: "/admin/materiais", label: "Materiais", icon: FolderOpen },
       { href: "/admin/configuracoes", label: "Config.", icon: Settings },
@@ -64,6 +66,7 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/membro/agente-ia", label: "Agente IA", icon: Bot, principal: true },
       { href: "/membro/trilha", label: "Trilha", icon: Route },
       { href: "/membro/treinamentos", label: "ATL FLIX", icon: Clapperboard },
+      { href: "/membro/mentor", label: "Mentor IA", icon: GraduationCap },
       { href: "/membro/conteudo", label: "Conteúdo", icon: Sparkles },
       { href: "/membro/materiais", label: "Materiais", icon: FolderOpen },
       { href: "/membro/perfil", label: "Perfil", icon: UserCircle },

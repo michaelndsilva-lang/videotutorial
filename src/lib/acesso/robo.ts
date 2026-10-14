@@ -8,7 +8,7 @@ type Client = SupabaseClient<Database>;
 
 // Brasil não tem horário de verão desde 2019: o "dia" do limite diário começa
 // à meia-noite de Brasília (UTC-3).
-function inicioDoDiaBrasilia(agora = new Date()): string {
+export function inicioDoDiaBrasilia(agora = new Date()): string {
   const data = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Sao_Paulo",
     year: "numeric",

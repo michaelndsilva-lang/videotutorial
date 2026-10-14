@@ -699,6 +699,167 @@ export type Database = {
           },
         ]
       }
+      mentor_config: {
+        Row: {
+          ativo: boolean
+          id: number
+          limite_diario: number
+          prompt_sistema: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          id?: number
+          limite_diario?: number
+          prompt_sistema?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          id?: number
+          limite_diario?: number
+          prompt_sistema?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mentor_documentos: {
+        Row: {
+          ativo: boolean
+          conteudo: string
+          created_at: string
+          created_by: string | null
+          erro: string | null
+          id: string
+          nome_arquivo: string | null
+          origem: string
+          status: string
+          titulo: string
+          total_trechos: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          conteudo: string
+          created_at?: string
+          created_by?: string | null
+          erro?: string | null
+          id?: string
+          nome_arquivo?: string | null
+          origem?: string
+          status?: string
+          titulo: string
+          total_trechos?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          conteudo?: string
+          created_at?: string
+          created_by?: string | null
+          erro?: string | null
+          id?: string
+          nome_arquivo?: string | null
+          origem?: string
+          status?: string
+          titulo?: string
+          total_trechos?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_documentos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mentor_perguntas: {
+        Row: {
+          created_at: string
+          id: string
+          membro_id: string
+          modelo: string | null
+          pergunta: string
+          resposta: string
+          sem_base: boolean
+          trechos: string[]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          membro_id: string
+          modelo?: string | null
+          pergunta: string
+          resposta: string
+          sem_base?: boolean
+          trechos?: string[]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          membro_id?: string
+          modelo?: string | null
+          pergunta?: string
+          resposta?: string
+          sem_base?: boolean
+          trechos?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_perguntas_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      mentor_trechos: {
+        Row: {
+          conteudo: string
+          documento_id: string
+          embedding: string
+          id: string
+          ordem: number
+        }
+        Insert: {
+          conteudo: string
+          documento_id: string
+          embedding: string
+          id?: string
+          ordem: number
+        }
+        Update: {
+          conteudo?: string
+          documento_id?: string
+          embedding?: string
+          id?: string
+          ordem?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentor_trechos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "mentor_documentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       missao_progresso: {
         Row: {
           concluido_em: string
@@ -1195,6 +1356,16 @@ export type Database = {
         Returns: {
           geracao_id: string
           saldo_apos: number
+        }[]
+      }
+      mentor_buscar_trechos: {
+        Args: { p_embedding: string; p_limite?: number; p_minimo?: number }
+        Returns: {
+          conteudo: string
+          documento_id: string
+          id: string
+          similaridade: number
+          titulo: string
         }[]
       }
     }

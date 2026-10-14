@@ -18,7 +18,7 @@ export type HistoricoMensagem = {
 // ao mesmo tempo e o modelo principal está rate-limited (429), caímos pro
 // próximo em vez de derrubar a conversa inteira. AI_GATEWAY_MODEL sempre
 // entra primeiro na lista.
-const FALLBACK_MODELS = Array.from(
+export const FALLBACK_MODELS = Array.from(
   new Set(
     [
       process.env.AI_GATEWAY_MODEL,
