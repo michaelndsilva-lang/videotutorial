@@ -13,13 +13,10 @@ import {
   LogOut,
   Sparkles,
   FolderOpen,
-  MessageSquareText,
   Menu,
-  Route,
   Clapperboard,
   GraduationCap,
   Globe,
-  Package,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -51,11 +48,8 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/admin/membros", label: "Membros", icon: Users, principal: true },
       { href: "/admin/agentes", label: "Agentes", icon: Bot, principal: true },
       { href: "/admin/conteudo", label: "Conteúdo", icon: Sparkles, principal: true },
-      { href: "/admin/trilha", label: "Trilha", icon: Route },
       { href: "/admin/treinamentos", label: "ATL FLIX", icon: Clapperboard },
       { href: "/admin/mentor", label: "Mentor IA", icon: GraduationCap },
-      { href: "/admin/scripts", label: "Scripts", icon: MessageSquareText },
-      { href: "/admin/produtos", label: "Produtos", icon: Package },
       { href: "/admin/materiais", label: "Materiais", icon: FolderOpen },
       { href: "/admin/configuracoes", label: "Config.", icon: Settings },
     ],
