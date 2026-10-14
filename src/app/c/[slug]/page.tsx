@@ -116,6 +116,12 @@ export default async function PaginaPessoal({ params }: Props) {
                   Energia por assinatura com desconto sobre o consumo, sem instalar placas e sem
                   investimento. Sujeito a análise da conta.
                 </p>
+                <a
+                  href={`/c/${pagina.slug}/energia`}
+                  className="mt-1 w-fit text-sm font-medium text-amber-700 underline underline-offset-2 dark:text-amber-400"
+                >
+                  Simular minha economia
+                </a>
               </div>
             </div>
           )}

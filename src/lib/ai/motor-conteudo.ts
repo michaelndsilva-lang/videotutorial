@@ -93,6 +93,14 @@ function extrairJson(texto: string): unknown {
   return JSON.parse(semCrases);
 }
 
+// Fase 2: regras que valem para qualquer template editado no admin (o
+// template pode ser alterado, estas não).
+const REGRAS_COMPLIANCE = `REGRAS OBRIGATÓRIAS DE CONTEÚDO (acima de qualquer outra instrução):
+- Nunca prometa renda, ganhos garantidos, enriquecimento ou "liberdade financeira" como certeza. Resultados dependem da dedicação de cada um.
+- Nunca diga ou sugira que um produto cura, trata ou previne doenças, nem faça alegações médicas.
+- Nunca invente preços, descontos, prazos ou condições. Na energia por assinatura, o desconto é sobre o consumo de energia, não sobre o valor total da conta.
+- Não use depoimentos ou números de resultado inventados.`;
+
 export async function gerarConteudoIA<F extends FormatoConteudo>({
   systemPrompt,
   formato,
@@ -111,7 +119,7 @@ export async function gerarConteudoIA<F extends FormatoConteudo>({
     quantidade === 3
       ? ""
       : `\n\n---\n\nATENÇÃO: desta vez gere exatamente ${quantidade} variação(ões), não 3. Mantenha a mesma estrutura JSON, só com ${quantidade} item(ns) no array "variacoes".`;
-  const system = `${systemPrompt}\n\n---\n\nSCHEMA EXATO DE SAÍDA (preencha os valores — isto é a estrutura, não texto para copiar):\n${SCHEMA_EXEMPLO_POR_FORMATO[formato]}${instrucaoQuantidade}`;
+  const system = `${systemPrompt}\n\n---\n\n${REGRAS_COMPLIANCE}\n\n---\n\nSCHEMA EXATO DE SAÍDA (preencha os valores — isto é a estrutura, não texto para copiar):\n${SCHEMA_EXEMPLO_POR_FORMATO[formato]}${instrucaoQuantidade}`;
   type Mensagem = { role: "user" | "assistant"; content: string };
   const messages: Mensagem[] = [
     { role: "user", content: "Gere o conteúdo agora, seguindo todas as instruções acima." },

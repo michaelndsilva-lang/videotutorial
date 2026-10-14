@@ -431,6 +431,47 @@ export type Database = {
         }
         Relationships: []
       }
+      energia_config: {
+        Row: {
+          aviso: string
+          conta_minima: number
+          desconto_percentual: number
+          fatia_consumo_percentual: number
+          id: number
+          ufs_atendidas: string[]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          aviso?: string
+          conta_minima?: number
+          desconto_percentual?: number
+          fatia_consumo_percentual?: number
+          id?: number
+          ufs_atendidas?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          aviso?: string
+          conta_minima?: number
+          desconto_percentual?: number
+          fatia_consumo_percentual?: number
+          id?: number
+          ufs_atendidas?: string[]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "energia_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       energia_leads: {
         Row: {
           etapa: string
