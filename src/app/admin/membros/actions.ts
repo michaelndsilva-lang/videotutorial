@@ -222,3 +222,29 @@ export async function revogarRobo(usuarioId: string, motivo?: string) {
   await registrarLog({ atorId: admin.id, membroId: usuarioId, acao: "robo_revogado", motivo });
   revalidarMembro(usuarioId);
 }
+
+// Fase 3: quem convidou quem. O trigger do banco recusa ciclos (patrocinador
+// que está na linha descendente do próprio membro).
+export async function definirPatrocinador(usuarioId: string, patrocinadorId: string | null) {
+  const admin = await requireAdmin();
+  if (patrocinadorId === usuarioId) throw new Error("O membro não pode ser patrocinador de si mesmo.");
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("membros")
+    .update({ patrocinador_id: patrocinadorId })
+    .eq("usuario_id", usuarioId);
+  if (error) {
+    if (error.message.includes("linha descendente")) {
+      throw new Error("Esse patrocinador está na equipe deste membro (criaria um ciclo).");
+    }
+    throw new Error(`Não foi possível salvar: ${error.message}`);
+  }
+  await registrarLog({
+    atorId: admin.id,
+    membroId: usuarioId,
+    acao: "patrocinador_definido",
+    detalhes: { patrocinador_id: patrocinadorId },
+  });
+  revalidarMembro(usuarioId);
+  revalidatePath("/admin/radar");
+}

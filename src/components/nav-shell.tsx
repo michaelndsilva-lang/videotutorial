@@ -17,6 +17,9 @@ import {
   Clapperboard,
   GraduationCap,
   Globe,
+  Activity,
+  LifeBuoy,
+  UsersRound,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -48,6 +51,7 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/admin/membros", label: "Membros", icon: Users, principal: true },
       { href: "/admin/agentes", label: "Agentes", icon: Bot, principal: true },
       { href: "/admin/conteudo", label: "Conteúdo", icon: Sparkles, principal: true },
+      { href: "/admin/radar", label: "Radar", icon: Activity },
       { href: "/admin/treinamentos", label: "ATL FLIX", icon: Clapperboard },
       { href: "/admin/mentor", label: "Mentor IA", icon: GraduationCap },
       { href: "/admin/materiais", label: "Materiais", icon: FolderOpen },
@@ -62,6 +66,8 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/membro/agente-ia", label: "Agente IA", icon: Bot, principal: true },
       { href: "/membro/conteudo", label: "Conteúdo", icon: Sparkles, principal: true },
       { href: "/membro/minha-pagina", label: "Minha página", icon: Globe },
+      { href: "/membro/equipe", label: "Minha equipe", icon: UsersRound },
+      { href: "/membro/ajuda", label: "Ajuda", icon: LifeBuoy },
       { href: "/membro/treinamentos", label: "ATL FLIX", icon: Clapperboard },
       { href: "/membro/mentor", label: "Mentor IA", icon: GraduationCap },
       { href: "/membro/materiais", label: "Materiais", icon: FolderOpen },

@@ -748,6 +748,7 @@ export type Database = {
         Row: {
           aprovado_em: string | null
           aprovado_por: string | null
+          codigo_convite: string
           created_at: string
           genero_agente: string | null
           link_energia: string | null
@@ -757,13 +758,16 @@ export type Database = {
           motivo_status: string | null
           nome_agente: string | null
           observacoes: string | null
+          patrocinador_id: string | null
           status: Database["public"]["Enums"]["membro_status"]
           sunne_habilitado: boolean
+          ultimo_acesso: string | null
           usuario_id: string
         }
         Insert: {
           aprovado_em?: string | null
           aprovado_por?: string | null
+          codigo_convite?: string
           created_at?: string
           genero_agente?: string | null
           link_energia?: string | null
@@ -773,13 +777,16 @@ export type Database = {
           motivo_status?: string | null
           nome_agente?: string | null
           observacoes?: string | null
+          patrocinador_id?: string | null
           status?: Database["public"]["Enums"]["membro_status"]
           sunne_habilitado?: boolean
+          ultimo_acesso?: string | null
           usuario_id: string
         }
         Update: {
           aprovado_em?: string | null
           aprovado_por?: string | null
+          codigo_convite?: string
           created_at?: string
           genero_agente?: string | null
           link_energia?: string | null
@@ -789,11 +796,20 @@ export type Database = {
           motivo_status?: string | null
           nome_agente?: string | null
           observacoes?: string | null
+          patrocinador_id?: string | null
           status?: Database["public"]["Enums"]["membro_status"]
           sunne_habilitado?: boolean
+          ultimo_acesso?: string | null
           usuario_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "membros_patrocinador_id_fkey"
+            columns: ["patrocinador_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
           {
             foreignKeyName: "membros_usuario_id_fkey"
             columns: ["usuario_id"]
@@ -1087,6 +1103,57 @@ export type Database = {
             foreignKeyName: "paginas_membro_id_fkey"
             columns: ["membro_id"]
             isOneToOne: true
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      pedidos_ajuda: {
+        Row: {
+          atendido_por: string | null
+          categoria: string
+          created_at: string
+          id: string
+          membro_id: string
+          mensagem: string
+          resposta: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          atendido_por?: string | null
+          categoria: string
+          created_at?: string
+          id?: string
+          membro_id: string
+          mensagem: string
+          resposta?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          atendido_por?: string | null
+          categoria?: string
+          created_at?: string
+          id?: string
+          membro_id?: string
+          mensagem?: string
+          resposta?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_ajuda_atendido_por_fkey"
+            columns: ["atendido_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_ajuda_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
             referencedRelation: "membros"
             referencedColumns: ["usuario_id"]
           },
@@ -1672,6 +1739,22 @@ export type Database = {
           id: string
           similaridade: number
           titulo: string
+        }[]
+      }
+      radar_equipe: {
+        Args: never
+        Returns: {
+          ajudas_abertas: number
+          aprovado_em: string | null
+          email: string
+          leads_7d: number
+          membro_id: string
+          nome: string
+          patrocinador_id: string | null
+          telefone: string | null
+          ultima_acao: string | null
+          ultima_atividade: string
+          ultimo_acesso: string | null
         }[]
       }
       registrar_visita_pagina: { Args: { p_slug: string }; Returns: undefined }

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { MembroActions, RoboActions } from "../membro-actions";
+import { PatrocinadorForm } from "./patrocinador-form";
 import {
   MEMBRO_STATUS_LABEL,
   MEMBRO_STATUS_VARIANT,
@@ -33,10 +34,24 @@ export default async function AdminMembroDetalhePage({
   const { data: membro } = await supabase
     .from("membros")
     .select(
-      "usuario_id, status, motivo_status, aprovado_em, link_recrutamento, link_energia, observacoes, modo_agente_ativo, created_at, usuarios(nome_completo, email), whatsapp_sessions(status, phone_number), robo_acesso(status, modos_permitidos, limite_diario_mensagens, termo_aceito_em, solicitado_em, liberado_em, motivo_revogacao)"
+      "usuario_id, status, motivo_status, aprovado_em, patrocinador_id, codigo_convite, link_recrutamento, link_energia, observacoes, modo_agente_ativo, created_at, usuarios(nome_completo, email), whatsapp_sessions(status, phone_number), robo_acesso(status, modos_permitidos, limite_diario_mensagens, termo_aceito_em, solicitado_em, liberado_em, motivo_revogacao)"
     )
     .eq("usuario_id", id)
     .single();
+
+  // Patrocinador: opções = membros aprovados (menos ele mesmo); ciclos são
+  // barrados no banco.
+  const [{ data: aprovados }, { count: indicados }] = await Promise.all([
+    supabase
+      .from("membros")
+      .select("usuario_id, usuarios(nome_completo, email)")
+      .eq("status", "ativo")
+      .neq("usuario_id", id),
+    supabase.from("membros").select("usuario_id", { count: "exact", head: true }).eq("patrocinador_id", id),
+  ]);
+  const opcoesPatrocinador = (aprovados ?? [])
+    .map((m) => ({ id: m.usuario_id, nome: m.usuarios?.nome_completo || m.usuarios?.email || "—" }))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 
   const { data: logs } = await supabase
     .from("access_logs")
@@ -117,6 +132,26 @@ export default async function AdminMembroDetalhePage({
                   : ""}
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="sm:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">Equipe</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 text-sm">
+            <div className="flex flex-col gap-1.5">
+              <p className="text-muted-foreground">Patrocinador (quem convidou)</p>
+              <PatrocinadorForm
+                usuarioId={membro.usuario_id}
+                atual={membro.patrocinador_id}
+                opcoes={opcoesPatrocinador}
+              />
+            </div>
+            <p className="text-muted-foreground">
+              {indicados ?? 0} indicado(s) direto(s) · código de convite{" "}
+              <span className="font-mono text-foreground">{membro.codigo_convite}</span>
+            </p>
           </CardContent>
         </Card>
 

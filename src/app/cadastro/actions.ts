@@ -45,9 +45,38 @@ export async function cadastrar(
       app_metadata: { role: "membro" },
     });
 
-    await registrarLog({ atorId: data.user.id, membroId: data.user.id, acao: "cadastro" });
+    // Convite (?ref=): liga ao patrocinador se o código for de um membro aprovado.
+    const ref = String(formData.get("ref") ?? "");
+    let patrocinador: { id: string; nome: string | null } | null = null;
+    if (/^[a-f0-9]{8}$/.test(ref)) {
+      const { data: p } = await admin
+        .from("membros")
+        .select("usuario_id, status")
+        .eq("codigo_convite", ref)
+        .maybeSingle();
+      if (p?.status === "ativo" && p.usuario_id !== data.user.id) {
+        const { error: refError } = await admin
+          .from("membros")
+          .update({ patrocinador_id: p.usuario_id })
+          .eq("usuario_id", data.user.id);
+        if (refError) console.error("Falha ao ligar patrocinador:", refError);
+        else {
+          const { data: u } = await admin.from("usuarios").select("nome_completo").eq("id", p.usuario_id).single();
+          patrocinador = { id: p.usuario_id, nome: u?.nome_completo ?? null };
+        }
+      }
+    }
+
+    await registrarLog({
+      atorId: data.user.id,
+      membroId: data.user.id,
+      acao: "cadastro",
+      detalhes: patrocinador ? { patrocinador_id: patrocinador.id } : undefined,
+    });
     await notificarAdmin(
-      `📝 ATL Prospect: novo cadastro aguardando aprovação — ${nomeCompleto} (${email}).`,
+      `📝 ATL Prospect: novo cadastro aguardando aprovação — ${nomeCompleto} (${email})${
+        patrocinador ? `, convidado por ${patrocinador.nome ?? "um membro"}` : ""
+      }.`,
       "/admin/membros?aba=pendentes"
     );
   }

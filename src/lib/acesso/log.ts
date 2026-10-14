@@ -16,7 +16,8 @@ export type AcaoAcesso =
   | "robo_atualizado"
   | "material_criado"
   | "material_editado"
-  | "material_removido";
+  | "material_removido"
+  | "patrocinador_definido";
 
 export const ACAO_LABEL: Record<AcaoAcesso, string> = {
   cadastro: "Novo cadastro",
@@ -33,6 +34,7 @@ export const ACAO_LABEL: Record<AcaoAcesso, string> = {
   material_criado: "Material adicionado",
   material_editado: "Material editado",
   material_removido: "Material removido",
+  patrocinador_definido: "Patrocinador definido",
 };
 
 // access_logs não tem policy de insert: só o servidor (service-role) grava.

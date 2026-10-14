@@ -3,6 +3,7 @@ import { signOut } from "@/lib/auth/actions";
 import { NavShell } from "@/components/nav-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { registrarAcesso } from "@/lib/radar/acesso";
 import type { MembroStatus } from "@/lib/types/database.types";
 
 const BLOQUEIO: Record<Exclude<MembroStatus, "ativo">, { titulo: string; mensagem: string }> = {
@@ -67,6 +68,8 @@ export default async function MembroLayout({ children }: { children: React.React
       </div>
     );
   }
+
+  await registrarAcesso(user.id);
 
   return (
     <NavShell role="membro" userEmail={user.email} signOutAction={signOut}>
