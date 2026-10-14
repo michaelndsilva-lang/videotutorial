@@ -1,8 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Bot, Settings, KanbanSquare, UserCircle, LogOut, Sparkles, FolderOpen } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Bot,
+  Settings,
+  KanbanSquare,
+  UserCircle,
+  LogOut,
+  Sparkles,
+  FolderOpen,
+  MessageSquareText,
+  Menu,
+} from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -16,14 +30,23 @@ function initialsFrom(email: string | null) {
 
 // Definidos aqui dentro (não recebidos via prop) porque componentes de ícone
 // (funções) não podem atravessar a fronteira Server -> Client Component.
-const NAV_CONFIG = {
+// `principal`: aparece na barra inferior do celular; o resto fica em "Mais".
+type NavItem = {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  principal?: boolean;
+};
+
+const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }> = {
   admin: {
     label: "Painel admin",
     items: [
-      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/admin/membros", label: "Membros", icon: Users },
-      { href: "/admin/agentes", label: "Agentes", icon: Bot },
-      { href: "/admin/conteudo", label: "Conteúdo", icon: Sparkles },
+      { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, principal: true },
+      { href: "/admin/membros", label: "Membros", icon: Users, principal: true },
+      { href: "/admin/agentes", label: "Agentes", icon: Bot, principal: true },
+      { href: "/admin/conteudo", label: "Conteúdo", icon: Sparkles, principal: true },
+      { href: "/admin/scripts", label: "Scripts", icon: MessageSquareText },
       { href: "/admin/materiais", label: "Materiais", icon: FolderOpen },
       { href: "/admin/configuracoes", label: "Config.", icon: Settings },
     ],
@@ -31,15 +54,16 @@ const NAV_CONFIG = {
   membro: {
     label: "Área do membro",
     items: [
-      { href: "/membro/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/membro/kanban", label: "Kanban", icon: KanbanSquare },
-      { href: "/membro/agente-ia", label: "Agente IA", icon: Bot },
+      { href: "/membro/dashboard", label: "Início", icon: LayoutDashboard, principal: true },
+      { href: "/membro/kanban", label: "Kanban", icon: KanbanSquare, principal: true },
+      { href: "/membro/scripts", label: "Scripts", icon: MessageSquareText, principal: true },
+      { href: "/membro/agente-ia", label: "Agente IA", icon: Bot, principal: true },
       { href: "/membro/conteudo", label: "Conteúdo", icon: Sparkles },
       { href: "/membro/materiais", label: "Materiais", icon: FolderOpen },
       { href: "/membro/perfil", label: "Perfil", icon: UserCircle },
     ],
   },
-} as const;
+};
 
 export function NavShell({
   role,
@@ -56,7 +80,12 @@ export function NavShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [maisAberto, setMaisAberto] = useState(false);
   const { label, items } = NAV_CONFIG[role];
+  const principais = items.filter((i) => i.principal);
+  const extras = items.filter((i) => !i.principal);
+  const extraAtivo = extras.some((i) => pathname.startsWith(i.href));
+  const badgesExtras = extras.reduce((t, i) => t + (badges?.[i.href] ?? 0), 0);
 
   return (
     <div className="flex min-h-screen flex-col bg-background md:flex-row">
@@ -139,7 +168,7 @@ export function NavShell({
 
       {/* Tab bar — mobile */}
       <nav className="fixed inset-x-0 bottom-0 z-10 flex border-t border-sidebar-border bg-sidebar text-sidebar-foreground md:hidden">
-        {items.map((item) => {
+        {principais.map((item) => {
           const active = pathname.startsWith(item.href);
           return (
             <Link
@@ -162,7 +191,57 @@ export function NavShell({
             </Link>
           );
         })}
+        <button
+          type="button"
+          onClick={() => setMaisAberto(true)}
+          className={cn(
+            "flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium transition-colors",
+            extraAtivo ? "text-sidebar-primary" : "text-sidebar-foreground/60"
+          )}
+        >
+          <span className="relative">
+            <Menu className="size-5" />
+            {badgesExtras ? (
+              <span className="absolute -top-1.5 -right-2.5 min-w-4 rounded-full bg-amber-500 px-1 text-center text-[10px] leading-4 font-semibold text-white tabular-nums">
+                {badgesExtras}
+              </span>
+            ) : null}
+          </span>
+          Mais
+        </button>
       </nav>
+
+      <Sheet open={maisAberto} onOpenChange={setMaisAberto}>
+        <SheetContent side="bottom" className="pb-6 md:hidden">
+          <SheetHeader>
+            <SheetTitle>Mais opções</SheetTitle>
+          </SheetHeader>
+          <nav className="grid grid-cols-3 gap-2 px-4">
+            {extras.map((item) => {
+              const active = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMaisAberto(false)}
+                  className={cn(
+                    "relative flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-xs font-medium",
+                    active ? "border-primary bg-primary/10 text-primary" : "text-foreground/80"
+                  )}
+                >
+                  <item.icon className="size-5" />
+                  {item.label}
+                  {badges?.[item.href] ? (
+                    <span className="absolute top-1.5 right-1.5 min-w-4 rounded-full bg-amber-500 px-1 text-center text-[10px] leading-4 font-semibold text-white tabular-nums">
+                      {badges[item.href]}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })}
+          </nav>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -731,6 +731,110 @@ export type Database = {
           },
         ]
       }
+      script_categorias: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
+      script_usos: {
+        Row: {
+          acao: string
+          created_at: string
+          id: string
+          membro_id: string
+          script_id: string
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          id?: string
+          membro_id: string
+          script_id: string
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          id?: string
+          membro_id?: string
+          script_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "script_usos_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+          {
+            foreignKeyName: "script_usos_script_id_fkey"
+            columns: ["script_id"]
+            isOneToOne: false
+            referencedRelation: "scripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scripts: {
+        Row: {
+          ativo: boolean
+          categoria_id: string
+          created_at: string
+          id: string
+          ordem: number
+          texto: string
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_id: string
+          created_at?: string
+          id?: string
+          ordem?: number
+          texto: string
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_id?: string
+          created_at?: string
+          id?: string
+          ordem?: number
+          texto?: string
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scripts_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "script_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sunne_config: {
         Row: {
           membro_id: string
