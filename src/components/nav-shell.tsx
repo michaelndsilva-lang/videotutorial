@@ -19,8 +19,6 @@ import {
   Clapperboard,
   GraduationCap,
   Globe,
-  Calculator,
-  ShoppingBag,
   Package,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -67,15 +65,11 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
     items: [
       { href: "/membro/dashboard", label: "Início", icon: LayoutDashboard, principal: true },
       { href: "/membro/kanban", label: "Kanban", icon: KanbanSquare, principal: true },
-      { href: "/membro/scripts", label: "Scripts", icon: MessageSquareText, principal: true },
       { href: "/membro/agente-ia", label: "Agente IA", icon: Bot, principal: true },
+      { href: "/membro/conteudo", label: "Conteúdo", icon: Sparkles, principal: true },
       { href: "/membro/minha-pagina", label: "Minha página", icon: Globe },
-      { href: "/membro/simulador", label: "Simulador", icon: Calculator },
-      { href: "/membro/catalogo", label: "Catálogo", icon: ShoppingBag },
-      { href: "/membro/trilha", label: "Trilha", icon: Route },
       { href: "/membro/treinamentos", label: "ATL FLIX", icon: Clapperboard },
       { href: "/membro/mentor", label: "Mentor IA", icon: GraduationCap },
-      { href: "/membro/conteudo", label: "Conteúdo", icon: Sparkles },
       { href: "/membro/materiais", label: "Materiais", icon: FolderOpen },
       { href: "/membro/perfil", label: "Perfil", icon: UserCircle },
     ],
