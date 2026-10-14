@@ -465,6 +465,74 @@ export type Database = {
           },
         ]
       }
+      materiais: {
+        Row: {
+          arquivo_path: string | null
+          ativo: boolean
+          categoria: string
+          compartilhavel: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string
+          id: string
+          mime_type: string | null
+          nome_arquivo: string | null
+          ordem: number
+          permitir_download: boolean
+          tamanho_bytes: number | null
+          tipo: string
+          titulo: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          arquivo_path?: string | null
+          ativo?: boolean
+          categoria: string
+          compartilhavel?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo?: string | null
+          ordem?: number
+          permitir_download?: boolean
+          tamanho_bytes?: number | null
+          tipo: string
+          titulo: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          arquivo_path?: string | null
+          ativo?: boolean
+          categoria?: string
+          compartilhavel?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          id?: string
+          mime_type?: string | null
+          nome_arquivo?: string | null
+          ordem?: number
+          permitir_download?: boolean
+          tamanho_bytes?: number | null
+          tipo?: string
+          titulo?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materiais_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       membros: {
         Row: {
           aprovado_em: string | null
@@ -1041,6 +1109,10 @@ export type EnergiaEtapa =
 
 // sunne_materiais.tipo é `text` com check constraint (migration 0023_agente_sunne).
 export type SunneMaterialTipo = "pdf" | "video"
+
+// materiais.tipo é `text` com check constraint (migration 0029_materiais).
+export type MaterialTipo = "pdf" | "apresentacao" | "imagem" | "video"
+export type Material = Database["public"]["Tables"]["materiais"]["Row"]
 
 // recrutamento_catalogos.tipo é `text` com check constraint (migration 0024_recrutamento_catalogos).
 export type CatalogoTipo = "linha_perfumaria" | "guia_produtos"

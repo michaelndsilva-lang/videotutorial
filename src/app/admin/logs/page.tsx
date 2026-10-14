@@ -54,7 +54,7 @@ export default async function AdminLogsPage({
       <PageHeader
         eyebrow="Controle de acesso"
         title="Histórico"
-        description="Cadastros, aprovações, recusas, suspensões e liberações do robô."
+        description="Cadastros, aprovações, suspensões, liberações do robô e mudanças nos materiais."
       />
 
       <form method="get" className="flex flex-wrap items-end gap-3">
@@ -104,12 +104,17 @@ export default async function AdminLogsPage({
       ) : (
         <ul className="flex flex-col divide-y rounded-xl border text-sm">
           {logs.map((log) => {
-            const detalhes = (log.detalhes ?? {}) as { nome?: string | null; email?: string | null };
+            const detalhes = (log.detalhes ?? {}) as {
+              nome?: string | null;
+              email?: string | null;
+              titulo?: string | null;
+            };
             const alvo =
               log.membro?.nome_completo ||
               log.membro?.email ||
               detalhes.nome ||
               detalhes.email ||
+              (detalhes.titulo ? `“${detalhes.titulo}”` : null) ||
               "—";
             const ator = log.ator?.nome_completo || log.ator?.email || "Sistema";
             return (
