@@ -8,6 +8,8 @@ import { LeadOriginChart } from "@/components/charts/lead-origin-chart";
 import { LeadStageChart } from "@/components/charts/lead-stage-chart";
 import { cn } from "@/lib/utils";
 import { montarTrilha } from "@/lib/trilha/progresso";
+import { AgendaLista, AvisosLista } from "@/components/mural";
+import { carregarAvisos, carregarEventos } from "@/lib/mural/carregar";
 import { ORIGENS } from "@/lib/kanban/origem";
 import type { CardOrigem } from "@/lib/types/database.types";
 
@@ -121,6 +123,10 @@ export default async function MembroDashboardPage() {
       supabase.from("missoes").select("id, dia, ordem"),
       supabase.from("missao_progresso").select("missao_id").eq("membro_id", user.id),
     ]);
+  const [avisosFixados, proximosEventos] = await Promise.all([
+    carregarAvisos(true),
+    carregarEventos(user.id, 1),
+  ]);
   const trilha = montarTrilha(missoes ?? [], new Set((progresso ?? []).map((p) => p.missao_id)));
 
   const totalLeads = cards?.length ?? 0;
@@ -161,6 +167,19 @@ export default async function MembroDashboardPage() {
         title={`Olá, ${user.email?.split("@")[0]}`}
         description="Aqui está o resumo do seu dia."
       />
+
+      {avisosFixados.length > 0 && <AvisosLista avisos={avisosFixados} />}
+      {proximosEventos.length > 0 && (
+        <section className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">Próximo evento</h2>
+            <Link href="/membro/mural" className="text-xs text-muted-foreground underline underline-offset-2">
+              Ver agenda
+            </Link>
+          </div>
+          <AgendaLista eventos={proximosEventos} />
+        </section>
+      )}
 
       {trilha.total > 0 && !trilha.concluida && (
         <Link

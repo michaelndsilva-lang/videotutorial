@@ -220,6 +220,47 @@ export type Database = {
           },
         ]
       }
+      avisos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          expira_em: string | null
+          fixado: boolean
+          id: string
+          texto: string
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          expira_em?: string | null
+          fixado?: boolean
+          id?: string
+          texto?: string
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          expira_em?: string | null
+          fixado?: boolean
+          id?: string
+          texto?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avisos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       configuracoes_gerais: {
         Row: {
           creditos_mensais_padrao: number
@@ -264,6 +305,71 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      conquista_curtidas: {
+        Row: {
+          conquista_id: string
+          created_at: string
+          membro_id: string
+        }
+        Insert: {
+          conquista_id: string
+          created_at?: string
+          membro_id: string
+        }
+        Update: {
+          conquista_id?: string
+          created_at?: string
+          membro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conquista_curtidas_conquista_id_fkey"
+            columns: ["conquista_id"]
+            isOneToOne: false
+            referencedRelation: "conquistas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conquista_curtidas_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      conquistas: {
+        Row: {
+          created_at: string
+          id: string
+          membro_id: string
+          oculta: boolean
+          texto: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          membro_id: string
+          oculta?: boolean
+          texto: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          membro_id?: string
+          oculta?: boolean
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conquistas_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
           },
         ]
       }
@@ -498,6 +604,86 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "membros"
             referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      evento_lembretes: {
+        Row: {
+          created_at: string
+          evento_id: string
+          membro_id: string
+        }
+        Insert: {
+          created_at?: string
+          evento_id: string
+          membro_id: string
+        }
+        Update: {
+          created_at?: string
+          evento_id?: string
+          membro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evento_lembretes_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "eventos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evento_lembretes_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
+      eventos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string
+          duracao_min: number
+          id: string
+          inicio: string
+          lembrete_enviado_em: string | null
+          link: string | null
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          duracao_min?: number
+          id?: string
+          inicio: string
+          lembrete_enviado_em?: string | null
+          link?: string | null
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string
+          duracao_min?: number
+          id?: string
+          inicio?: string
+          lembrete_enviado_em?: string | null
+          link?: string | null
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
           },
         ]
       }

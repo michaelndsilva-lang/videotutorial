@@ -20,6 +20,7 @@ import {
   Activity,
   LifeBuoy,
   UsersRound,
+  Megaphone,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/admin/agentes", label: "Agentes", icon: Bot, principal: true },
       { href: "/admin/conteudo", label: "Conteúdo", icon: Sparkles, principal: true },
       { href: "/admin/radar", label: "Radar", icon: Activity },
+      { href: "/admin/mural", label: "Mural", icon: Megaphone },
       { href: "/admin/treinamentos", label: "ATL FLIX", icon: Clapperboard },
       { href: "/admin/mentor", label: "Mentor IA", icon: GraduationCap },
       { href: "/admin/materiais", label: "Materiais", icon: FolderOpen },
@@ -65,6 +67,7 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/membro/kanban", label: "Kanban", icon: KanbanSquare, principal: true },
       { href: "/membro/agente-ia", label: "Agente IA", icon: Bot, principal: true },
       { href: "/membro/conteudo", label: "Conteúdo", icon: Sparkles, principal: true },
+      { href: "/membro/mural", label: "Mural", icon: Megaphone },
       { href: "/membro/minha-pagina", label: "Minha página", icon: Globe },
       { href: "/membro/equipe", label: "Minha equipe", icon: UsersRound },
       { href: "/membro/ajuda", label: "Ajuda", icon: LifeBuoy },
