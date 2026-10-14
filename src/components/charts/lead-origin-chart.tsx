@@ -1,31 +1,24 @@
 "use client";
 
-import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { ORIGENS, ORIGEM_COR, ORIGEM_LABEL } from "@/lib/kanban/origem";
+import type { CardOrigem } from "@/lib/types/database.types";
 
-// Paleta categórica (2 slots) validada com scripts/validate_palette.js do
-// skill dataviz: CVD ΔE 27+ (target 8), normal-vision ΔE 30+ (floor 15),
-// contraste >=3:1 nos dois modos — ver referências no PR.
-const chartConfig = {
-  manual: {
-    label: "Manual",
-    theme: { light: "#2a78d6", dark: "#3987e5" },
-  },
-  agente_ia: {
-    label: "Agente IA",
-    theme: { light: "#B45309", dark: "#D97706" },
-  },
-} satisfies ChartConfig;
+const chartConfig = Object.fromEntries(
+  ORIGENS.map((o) => [o, { label: ORIGEM_LABEL[o], theme: ORIGEM_COR[o] }])
+) satisfies ChartConfig;
 
-export function LeadOriginChart({ manual, agenteIa }: { manual: number; agenteIa: number }) {
-  const total = manual + agenteIa;
+// Barra empilhada única (parte de um todo) + lista com as contagens por
+// extenso: a cor nunca é a única pista (aqua/magenta ficam <3:1 no claro).
+export function LeadOriginChart({ contagens }: { contagens: Record<CardOrigem, number> }) {
+  const presentes = ORIGENS.filter((o) => contagens[o] > 0);
+  const total = presentes.reduce((t, o) => t + contagens[o], 0);
 
   if (total === 0) {
     return (
@@ -35,39 +28,49 @@ export function LeadOriginChart({ manual, agenteIa }: { manual: number; agenteIa
     );
   }
 
-  const data = [{ name: "Leads", manual, agente_ia: agenteIa }];
+  const data = [{ name: "Leads", ...contagens }];
 
   return (
-    <ChartContainer config={chartConfig} className="aspect-auto h-24 w-full">
-      <BarChart
-        data={data}
-        layout="vertical"
-        barSize={32}
-        margin={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      >
-        <XAxis type="number" hide domain={[0, total]} />
-        <YAxis type="category" dataKey="name" hide />
-        <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-        <ChartLegend content={<ChartLegendContent />} />
-        <Bar dataKey="manual" stackId="a" fill="var(--color-manual)" radius={[6, 0, 0, 6]}>
-          {manual > 0 && (
-            <LabelList
-              dataKey="manual"
-              position="center"
-              className="fill-white text-xs font-medium"
+    <div className="flex flex-col gap-3">
+      <ChartContainer config={chartConfig} className="aspect-auto h-10 w-full">
+        <BarChart data={data} layout="vertical" barSize={28} margin={{ left: 0, right: 0, top: 0, bottom: 0 }}>
+          <XAxis type="number" hide domain={[0, total]} />
+          <YAxis type="category" dataKey="name" hide />
+          <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+          {presentes.map((o, i) => (
+            <Bar
+              key={o}
+              dataKey={o}
+              stackId="a"
+              fill={`var(--color-${o})`}
+              stroke="var(--background)"
+              strokeWidth={2}
+              radius={
+                presentes.length === 1
+                  ? 6
+                  : i === 0
+                    ? [6, 0, 0, 6]
+                    : i === presentes.length - 1
+                      ? [0, 6, 6, 0]
+                      : 0
+              }
             />
-          )}
-        </Bar>
-        <Bar dataKey="agente_ia" stackId="a" fill="var(--color-agente_ia)" radius={[0, 6, 6, 0]}>
-          {agenteIa > 0 && (
-            <LabelList
-              dataKey="agente_ia"
-              position="center"
-              className="fill-white text-xs font-medium"
-            />
-          )}
-        </Bar>
-      </BarChart>
-    </ChartContainer>
+          ))}
+        </BarChart>
+      </ChartContainer>
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        {presentes.map((o) => (
+          <li key={o} className="flex items-center gap-1.5">
+            {/* As vars --color-* só existem dentro do ChartContainer. */}
+            <span className="size-2.5 rounded-sm dark:hidden" style={{ background: ORIGEM_COR[o].light }} aria-hidden />
+            <span className="hidden size-2.5 rounded-sm dark:block" style={{ background: ORIGEM_COR[o].dark }} aria-hidden />
+            <span className="text-foreground">{ORIGEM_LABEL[o]}</span>
+            <span className="tabular-nums">
+              {contagens[o]} ({Math.round((contagens[o] / total) * 100)}%)
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

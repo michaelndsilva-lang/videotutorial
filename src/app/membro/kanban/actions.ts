@@ -4,11 +4,18 @@ import { revalidatePath } from "next/cache";
 import { requireMembroAprovado } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
+function validarData(valor?: string): string | null {
+  if (!valor) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(valor)) throw new Error("Data de follow-up inválida.");
+  return valor;
+}
+
 export async function createCard(input: {
   colunaId: string;
   nomeLead: string;
   telefone?: string;
   observacoes?: string;
+  proximoFollowup?: string;
 }) {
   await requireMembroAprovado();
   const supabase = await createClient();
@@ -37,6 +44,7 @@ export async function createCard(input: {
     nome_lead: input.nomeLead,
     telefone: input.telefone || null,
     observacoes: input.observacoes || null,
+    proximo_followup: validarData(input.proximoFollowup),
     origem: "manual",
     posicao: nextPos,
   });
@@ -47,7 +55,7 @@ export async function createCard(input: {
 
 export async function updateCard(
   id: string,
-  input: { nomeLead: string; telefone?: string; observacoes?: string }
+  input: { nomeLead: string; telefone?: string; observacoes?: string; proximoFollowup?: string }
 ) {
   await requireMembroAprovado();
   const supabase = await createClient();
@@ -58,6 +66,7 @@ export async function updateCard(
       nome_lead: input.nomeLead,
       telefone: input.telefone || null,
       observacoes: input.observacoes || null,
+      proximo_followup: validarData(input.proximoFollowup),
     })
     .eq("id", id);
   if (error) throw new Error(error.message);
@@ -143,5 +152,17 @@ export async function deleteColumn(id: string) {
   const { error } = await supabase.from("kanban_columns").delete().eq("id", id);
   if (error) throw new Error(error.message);
 
+  revalidatePath("/membro/kanban");
+}
+
+// Painel "Hoje": adiar ou concluir o follow-up sem abrir o card.
+export async function adiarFollowup(id: string, novaData: string | null) {
+  await requireMembroAprovado();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("kanban_cards")
+    .update({ proximo_followup: validarData(novaData ?? undefined) })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
   revalidatePath("/membro/kanban");
 }

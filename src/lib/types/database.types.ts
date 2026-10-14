@@ -495,10 +495,12 @@ export type Database = {
           coluna_id: string
           created_at: string
           id: string
+          movido_em: string
           nome_lead: string
           observacoes: string | null
           origem: Database["public"]["Enums"]["card_origem"]
           posicao: number
+          proximo_followup: string | null
           telefone: string | null
           updated_at: string
         }
@@ -507,10 +509,12 @@ export type Database = {
           coluna_id: string
           created_at?: string
           id?: string
+          movido_em?: string
           nome_lead: string
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["card_origem"]
           posicao?: number
+          proximo_followup?: string | null
           telefone?: string | null
           updated_at?: string
         }
@@ -519,10 +523,12 @@ export type Database = {
           coluna_id?: string
           created_at?: string
           id?: string
+          movido_em?: string
           nome_lead?: string
           observacoes?: string | null
           origem?: Database["public"]["Enums"]["card_origem"]
           posicao?: number
+          proximo_followup?: string | null
           telefone?: string | null
           updated_at?: string
         }
@@ -1371,7 +1377,7 @@ export type Database = {
     }
     Enums: {
       agente_modo: "recrutamento" | "energia" | "sunne"
-      card_origem: "manual" | "agente_ia"
+      card_origem: "manual" | "agente_ia" | "pagina" | "simulador" | "catalogo"
       formato_conteudo:
         | "reels"
         | "legenda_post"
@@ -1518,7 +1524,7 @@ export const Constants = {
   public: {
     Enums: {
       agente_modo: ["recrutamento", "energia", "sunne"],
-      card_origem: ["manual", "agente_ia"],
+      card_origem: ["manual", "agente_ia", "pagina", "simulador", "catalogo"],
       formato_conteudo: [
         "reels",
         "legenda_post",
@@ -1549,6 +1555,7 @@ export type AgenteModo = Database["public"]["Enums"]["agente_modo"]
 export type MembroStatus = Database["public"]["Enums"]["membro_status"]
 export type UserRole = Database["public"]["Enums"]["user_role"]
 export type WhatsappStatus = Database["public"]["Enums"]["whatsapp_status"]
+export type CardOrigem = Database["public"]["Enums"]["card_origem"]
 export type RoboStatus = Database["public"]["Enums"]["robo_status"]
 export type RoboAcesso = Database["public"]["Tables"]["robo_acesso"]["Row"]
 export type ObjetivoConteudo = Database["public"]["Enums"]["objetivo_conteudo"]

@@ -1,11 +1,12 @@
 "use client";
 
-import { Phone, Sparkles } from "lucide-react";
+import { CalendarClock, Phone, Sparkles } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { ORIGEM_LABEL, formatarData, hojeBrasilia } from "@/lib/kanban/origem";
 import type { CardRow } from "./types";
 
 function initialsFrom(name: string) {
@@ -70,14 +71,43 @@ export function KanbanCardView({
               {card.telefone}
             </p>
           )}
-          {isAgente && (
-            <span className="mt-0.5 flex w-fit items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
-              <Sparkles className="size-2.5" />
-              Agente IA
-            </span>
-          )}
+          <div className="mt-0.5 flex flex-wrap gap-1">
+            {isAgente ? (
+              <span className="flex w-fit items-center gap-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
+                <Sparkles className="size-2.5" />
+                Agente IA
+              </span>
+            ) : card.origem !== "manual" ? (
+              <span className="w-fit rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                {ORIGEM_LABEL[card.origem]}
+              </span>
+            ) : null}
+            {card.proximo_followup && <FollowupChip data={card.proximo_followup} />}
+          </div>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function FollowupChip({ data }: { data: string }) {
+  const hoje = hojeBrasilia();
+  const atrasado = data < hoje;
+  const ehHoje = data === hoje;
+  return (
+    <span
+      className={cn(
+        "flex w-fit items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+        atrasado
+          ? "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300"
+          : ehHoje
+            ? "bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"
+            : "bg-muted text-muted-foreground"
+      )}
+    >
+      <CalendarClock className="size-2.5" />
+      {atrasado ? "Atrasado · " : ehHoje ? "Hoje · " : ""}
+      {formatarData(data)}
+    </span>
   );
 }

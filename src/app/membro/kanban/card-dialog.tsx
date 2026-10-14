@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { createCard, deleteCard, updateCard } from "./actions";
+import { ORIGEM_LABEL } from "@/lib/kanban/origem";
 import type { CardRow } from "./types";
 
 export function CardDialog({
@@ -32,6 +33,7 @@ export function CardDialog({
   const [nomeLead, setNomeLead] = useState("");
   const [telefone, setTelefone] = useState("");
   const [observacoes, setObservacoes] = useState("");
+  const [proximoFollowup, setProximoFollowup] = useState("");
   const [isPending, startTransition] = useTransition();
 
   // Reseta os campos quando o dialog abre (padrão React: ajustar estado em
@@ -43,6 +45,7 @@ export function CardDialog({
       setNomeLead(card?.nome_lead ?? "");
       setTelefone(card?.telefone ?? "");
       setObservacoes(card?.observacoes ?? "");
+      setProximoFollowup(card?.proximo_followup ?? "");
     }
   }
 
@@ -54,9 +57,9 @@ export function CardDialog({
     startTransition(async () => {
       try {
         if (card) {
-          await updateCard(card.id, { nomeLead, telefone, observacoes });
+          await updateCard(card.id, { nomeLead, telefone, observacoes, proximoFollowup });
         } else if (colunaId) {
-          await createCard({ colunaId, nomeLead, telefone, observacoes });
+          await createCard({ colunaId, nomeLead, telefone, observacoes, proximoFollowup });
         }
         onOpenChange(false);
         onSaved();
@@ -98,6 +101,26 @@ export function CardDialog({
               onChange={(e) => setTelefone(e.target.value)}
               placeholder="(00) 00000-0000"
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="proximo_followup">Próximo follow-up</Label>
+            <div className="flex gap-2">
+              <Input
+                id="proximo_followup"
+                type="date"
+                value={proximoFollowup}
+                onChange={(e) => setProximoFollowup(e.target.value)}
+                className="w-44"
+              />
+              {proximoFollowup && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setProximoFollowup("")}>
+                  Limpar
+                </Button>
+              )}
+            </div>
+            {card && card.origem !== "manual" && (
+              <p className="text-xs text-muted-foreground">Origem: {ORIGEM_LABEL[card.origem]}</p>
+            )}
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="observacoes">Observações</Label>

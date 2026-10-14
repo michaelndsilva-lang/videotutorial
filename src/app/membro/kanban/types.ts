@@ -1,3 +1,5 @@
+import type { CardOrigem } from "@/lib/types/database.types";
+
 export type ColumnRow = {
   id: string;
   board_id: string;
@@ -12,7 +14,9 @@ export type CardRow = {
   coluna_id: string;
   nome_lead: string;
   telefone: string | null;
-  origem: "manual" | "agente_ia";
+  origem: CardOrigem;
   observacoes: string | null;
   posicao: number;
+  proximo_followup: string | null;
+  movido_em: string;
 };

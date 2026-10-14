@@ -8,6 +8,8 @@ import { LeadOriginChart } from "@/components/charts/lead-origin-chart";
 import { LeadStageChart } from "@/components/charts/lead-stage-chart";
 import { cn } from "@/lib/utils";
 import { montarTrilha } from "@/lib/trilha/progresso";
+import { ORIGENS } from "@/lib/kanban/origem";
+import type { CardOrigem } from "@/lib/types/database.types";
 
 const MODO_LABEL: Record<string, string> = {
   recrutamento: "Recrutamento",
@@ -122,8 +124,9 @@ export default async function MembroDashboardPage() {
   const trilha = montarTrilha(missoes ?? [], new Set((progresso ?? []).map((p) => p.missao_id)));
 
   const totalLeads = cards?.length ?? 0;
-  const manual = cards?.filter((c) => c.origem === "manual").length ?? 0;
-  const agenteIa = cards?.filter((c) => c.origem === "agente_ia").length ?? 0;
+  const contagensOrigem = Object.fromEntries(
+    ORIGENS.map((o) => [o, cards?.filter((c) => c.origem === o).length ?? 0])
+  ) as Record<CardOrigem, number>;
   const stages = (columns ?? []).map((col) => ({
     nome: col.nome,
     total: cards?.filter((c) => c.coluna_id === col.id).length ?? 0,
@@ -207,7 +210,7 @@ export default async function MembroDashboardPage() {
             <CardDescription>Como cada lead chegou até você</CardDescription>
           </CardHeader>
           <CardContent>
-            <LeadOriginChart manual={manual} agenteIa={agenteIa} />
+            <LeadOriginChart contagens={contagensOrigem} />
           </CardContent>
         </Card>
 
