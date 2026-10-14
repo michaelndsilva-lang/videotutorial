@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireMembro } from "@/lib/auth/guards";
+import { requireMembroAprovado } from "@/lib/auth/guards";
 
 export async function atualizarLinksPessoais(input: {
   linkRecrutamento: string;
   linkEnergia: string;
 }) {
-  const user = await requireMembro();
+  const user = await requireMembroAprovado();
   const supabase = await createClient();
 
   const { error } = await supabase

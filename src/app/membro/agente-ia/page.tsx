@@ -6,6 +6,7 @@ import { WhatsappPanel } from "./whatsapp-panel";
 import { ModoForm } from "./modo-form";
 import { NomeAgenteForm } from "./nome-agente-form";
 import { SunnePanel, type MaterialSunne } from "./sunne-panel";
+import { RoboAcessoCard } from "./robo-acesso-card";
 
 // Upload de PDF do SUNNE extrai o texto na server action desta página.
 export const maxDuration = 60;
@@ -14,7 +15,7 @@ export default async function MembroAgenteIaPage() {
   const user = await requireMembro();
   const supabase = await createClient();
 
-  const [{ data: sessao }, { data: membro }] = await Promise.all([
+  const [{ data: sessao }, { data: membro }, { data: robo }] = await Promise.all([
     supabase
       .from("whatsapp_sessions")
       .select("status, qr_code, phone_number")
@@ -25,7 +26,27 @@ export default async function MembroAgenteIaPage() {
       .select("modo_agente_ativo, nome_agente, genero_agente, sunne_habilitado")
       .eq("usuario_id", user.id)
       .single(),
+    supabase
+      .from("robo_acesso")
+      .select("status, modos_permitidos, limite_diario_mensagens, motivo_revogacao")
+      .eq("membro_id", user.id)
+      .maybeSingle(),
   ]);
+
+  // Fase 0: sem liberação do admin, só aparece o card de solicitação.
+  const roboStatus = robo?.status ?? "sem_acesso";
+  if (roboStatus !== "liberado") {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          eyebrow="Automação"
+          title="Agente de IA"
+          description="Conecte seu WhatsApp e deixe o agente prospectar por você."
+        />
+        <RoboAcessoCard status={roboStatus} motivo={robo?.motivo_revogacao ?? null} />
+      </div>
+    );
+  }
 
   // SUNNE é exclusivo: só é carregado (e renderizado) para quem foi liberado.
   const sunneHabilitado = membro?.sunne_habilitado === true;
@@ -63,7 +84,10 @@ export default async function MembroAgenteIaPage() {
       <Card className="max-w-xl">
         <CardHeader>
           <CardTitle className="text-base">WhatsApp</CardTitle>
-          <CardDescription>Escaneie o QR Code para vincular seu número.</CardDescription>
+          <CardDescription>
+            Escaneie o QR Code para vincular seu número. Limite: até{" "}
+            {robo?.limite_diario_mensagens} respostas do robô por dia.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <NomeAgenteForm
@@ -90,6 +114,7 @@ export default async function MembroAgenteIaPage() {
           <ModoForm
             modoAtivo={membro?.modo_agente_ativo ?? "recrutamento"}
             sunneHabilitado={sunneHabilitado}
+            modosPermitidos={robo?.modos_permitidos ?? []}
           />
         </CardContent>
       </Card>

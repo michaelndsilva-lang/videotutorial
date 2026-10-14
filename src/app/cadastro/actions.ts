@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { registrarLog } from "@/lib/acesso/log";
+import { notificarAdmin } from "@/lib/acesso/notificar-admin";
 
 export type CadastroState = { error: string | null; success: boolean };
 
@@ -42,6 +44,12 @@ export async function cadastrar(
     await admin.auth.admin.updateUserById(data.user.id, {
       app_metadata: { role: "membro" },
     });
+
+    await registrarLog({ atorId: data.user.id, membroId: data.user.id, acao: "cadastro" });
+    await notificarAdmin(
+      `📝 ATL Prospect: novo cadastro aguardando aprovação — ${nomeCompleto} (${email}).`,
+      "/admin/membros?aba=pendentes"
+    );
   }
 
   return { error: null, success: true };

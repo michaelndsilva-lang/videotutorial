@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireMembro } from "@/lib/auth/guards";
+import { requireMembroAprovado } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 import {
   SUNNE_BUCKET,
@@ -15,7 +15,7 @@ import type { SunneMaterialTipo } from "@/lib/types/database.types";
 // aparece para quem está liberado, mas server actions são endpoints públicos.
 // As tabelas/bucket também têm RLS por private.sunne_habilitado (0023).
 async function requireSunne() {
-  const user = await requireMembro();
+  const user = await requireMembroAprovado();
   const supabase = await createClient();
   const { data } = await supabase
     .from("membros")

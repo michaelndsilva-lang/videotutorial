@@ -43,11 +43,14 @@ export function NavShell({
   role,
   userEmail,
   signOutAction,
+  badges,
   children,
 }: {
   role: "admin" | "membro";
   userEmail: string | null;
   signOutAction: () => Promise<void>;
+  // Contadores por href (ex.: pendências em /admin/membros). 0 ou ausente = sem bolinha.
+  badges?: Record<string, number>;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -82,6 +85,11 @@ export function NavShell({
               >
                 <item.icon className="size-4" />
                 {item.label}
+                {badges?.[item.href] ? (
+                  <span className="ml-auto rounded-full bg-amber-500 px-1.5 text-xs font-semibold text-white tabular-nums">
+                    {badges[item.href]}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
@@ -140,7 +148,14 @@ export function NavShell({
                 active ? "text-sidebar-primary" : "text-sidebar-foreground/60"
               )}
             >
-              <item.icon className="size-5" />
+              <span className="relative">
+                <item.icon className="size-5" />
+                {badges?.[item.href] ? (
+                  <span className="absolute -top-1.5 -right-2.5 min-w-4 rounded-full bg-amber-500 px-1 text-center text-[10px] leading-4 font-semibold text-white tabular-nums">
+                    {badges[item.href]}
+                  </span>
+                ) : null}
+              </span>
               {item.label}
             </Link>
           );

@@ -15,13 +15,16 @@ const MODO_LABEL: Record<AgenteModo, string> = {
 export function ModoForm({
   modoAtivo,
   sunneHabilitado,
+  modosPermitidos,
 }: {
   modoAtivo: AgenteModo;
   sunneHabilitado: boolean;
+  modosPermitidos: AgenteModo[];
 }) {
   // SUNNE é exclusivo de membros liberados — para os demais a opção nem existe.
-  const modos = (Object.keys(MODO_LABEL) as AgenteModo[]).filter(
-    (m) => m !== "sunne" || sunneHabilitado
+  // Recrutamento/energia: só os modos que o admin liberou em robo_acesso.
+  const modos = (Object.keys(MODO_LABEL) as AgenteModo[]).filter((m) =>
+    m === "sunne" ? sunneHabilitado : modosPermitidos.includes(m)
   );
   const [modo, setModo] = useState(modoAtivo);
   const [isPending, startTransition] = useTransition();

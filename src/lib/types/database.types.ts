@@ -19,6 +19,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_logs: {
+        Row: {
+          acao: string
+          ator_id: string | null
+          created_at: string
+          detalhes: Json | null
+          id: string
+          membro_id: string | null
+          motivo: string | null
+        }
+        Insert: {
+          acao: string
+          ator_id?: string | null
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          membro_id?: string | null
+          motivo?: string | null
+        }
+        Update: {
+          acao?: string
+          ator_id?: string | null
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          membro_id?: string | null
+          motivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_logs_ator_id_fkey"
+            columns: ["ator_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_logs_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agente_mensagens: {
         Row: {
           conteudo: string
@@ -422,11 +467,14 @@ export type Database = {
       }
       membros: {
         Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
           created_at: string
           genero_agente: string | null
           link_energia: string | null
           link_recrutamento: string | null
           modo_agente_ativo: Database["public"]["Enums"]["agente_modo"]
+          motivo_status: string | null
           nome_agente: string | null
           observacoes: string | null
           status: Database["public"]["Enums"]["membro_status"]
@@ -434,11 +482,14 @@ export type Database = {
           usuario_id: string
         }
         Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           created_at?: string
           genero_agente?: string | null
           link_energia?: string | null
           link_recrutamento?: string | null
           modo_agente_ativo?: Database["public"]["Enums"]["agente_modo"]
+          motivo_status?: string | null
           nome_agente?: string | null
           observacoes?: string | null
           status?: Database["public"]["Enums"]["membro_status"]
@@ -446,11 +497,14 @@ export type Database = {
           usuario_id: string
         }
         Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           created_at?: string
           genero_agente?: string | null
           link_energia?: string | null
           link_recrutamento?: string | null
           modo_agente_ativo?: Database["public"]["Enums"]["agente_modo"]
+          motivo_status?: string | null
           nome_agente?: string | null
           observacoes?: string | null
           status?: Database["public"]["Enums"]["membro_status"]
@@ -552,6 +606,60 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "usuarios"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      robo_acesso: {
+        Row: {
+          liberado_em: string | null
+          liberado_por: string | null
+          limite_diario_mensagens: number
+          membro_id: string
+          modos_permitidos: Database["public"]["Enums"]["agente_modo"][]
+          motivo_revogacao: string | null
+          solicitado_em: string | null
+          status: Database["public"]["Enums"]["robo_status"]
+          termo_aceito_em: string | null
+          updated_at: string
+        }
+        Insert: {
+          liberado_em?: string | null
+          liberado_por?: string | null
+          limite_diario_mensagens?: number
+          membro_id: string
+          modos_permitidos?: Database["public"]["Enums"]["agente_modo"][]
+          motivo_revogacao?: string | null
+          solicitado_em?: string | null
+          status?: Database["public"]["Enums"]["robo_status"]
+          termo_aceito_em?: string | null
+          updated_at?: string
+        }
+        Update: {
+          liberado_em?: string | null
+          liberado_por?: string | null
+          limite_diario_mensagens?: number
+          membro_id?: string
+          modos_permitidos?: Database["public"]["Enums"]["agente_modo"][]
+          motivo_revogacao?: string | null
+          solicitado_em?: string | null
+          status?: Database["public"]["Enums"]["robo_status"]
+          termo_aceito_em?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "robo_acesso_liberado_por_fkey"
+            columns: ["liberado_por"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "robo_acesso_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: true
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
           },
         ]
       }
@@ -741,7 +849,7 @@ export type Database = {
         | "legenda_post"
         | "stories"
         | "whatsapp_prospeccao"
-      membro_status: "pendente" | "ativo" | "inativo"
+      membro_status: "pendente" | "ativo" | "inativo" | "recusado" | "suspenso"
       mensagem_remetente: "lead" | "agente"
       nivel_experiencia_conteudo: "iniciante" | "intermediario" | "lider"
       objetivo_conteudo:
@@ -749,6 +857,7 @@ export type Database = {
         | "energia_assinatura"
         | "venda_produto"
         | "autoridade_pessoal"
+      robo_status: "sem_acesso" | "solicitado" | "liberado" | "revogado"
       tipo_credito: "recarga" | "consumo" | "ajuste_admin"
       tom_voz_conteudo: "inspirador" | "direto" | "descontraido" | "autoridade"
       user_role: "admin" | "membro"
@@ -888,7 +997,7 @@ export const Constants = {
         "stories",
         "whatsapp_prospeccao",
       ],
-      membro_status: ["pendente", "ativo", "inativo"],
+      membro_status: ["pendente", "ativo", "inativo", "recusado", "suspenso"],
       mensagem_remetente: ["lead", "agente"],
       nivel_experiencia_conteudo: ["iniciante", "intermediario", "lider"],
       objetivo_conteudo: [
@@ -897,6 +1006,7 @@ export const Constants = {
         "venda_produto",
         "autoridade_pessoal",
       ],
+      robo_status: ["sem_acesso", "solicitado", "liberado", "revogado"],
       tipo_credito: ["recarga", "consumo", "ajuste_admin"],
       tom_voz_conteudo: ["inspirador", "direto", "descontraido", "autoridade"],
       user_role: ["admin", "membro"],
@@ -911,6 +1021,8 @@ export type AgenteModo = Database["public"]["Enums"]["agente_modo"]
 export type MembroStatus = Database["public"]["Enums"]["membro_status"]
 export type UserRole = Database["public"]["Enums"]["user_role"]
 export type WhatsappStatus = Database["public"]["Enums"]["whatsapp_status"]
+export type RoboStatus = Database["public"]["Enums"]["robo_status"]
+export type RoboAcesso = Database["public"]["Tables"]["robo_acesso"]["Row"]
 export type ObjetivoConteudo = Database["public"]["Enums"]["objetivo_conteudo"]
 export type FormatoConteudo = Database["public"]["Enums"]["formato_conteudo"]
 export type TomVozConteudo = Database["public"]["Enums"]["tom_voz_conteudo"]

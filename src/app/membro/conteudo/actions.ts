@@ -1,13 +1,13 @@
 "use server";
 
-import { requireMembro } from "@/lib/auth/guards";
+import { requireMembroAprovado } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // Compartilhado entre a tela de geração e a biblioteca — favoritar é a única
 // escrita que o membro faz direto numa linha de conteudo_geracoes (o resto é
 // bloqueado pela trigger prevent_conteudo_geracao_campo_protegido, migration 0015).
 export async function alternarFavorito(geracaoId: string, favorito: boolean) {
-  const user = await requireMembro();
+  const user = await requireMembroAprovado();
   const admin = createAdminClient();
 
   const { error } = await admin

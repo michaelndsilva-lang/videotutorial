@@ -22,6 +22,7 @@ import {
   montarInstrucaoCatalogos,
   type CatalogoDisponivel,
 } from "@/lib/recrutamento/catalogos";
+import { roboPodeResponder } from "@/lib/acesso/robo";
 import type { EvolutionInboundMessage, EvolutionWebhookEvent } from "@/lib/evolution/types";
 import type { CatalogoTipo, EnergiaEtapa } from "@/lib/types/database.types";
 
@@ -136,6 +137,12 @@ export async function POST(request: Request) {
         const modoConfigurado = membro?.modo_agente_ativo ?? "recrutamento";
         const modo =
           modoConfigurado === "sunne" && !membro?.sunne_habilitado ? "recrutamento" : modoConfigurado;
+
+        // Fase 0: o robô só age para membro com acesso liberado pelo admin e
+        // num modo permitido. O limite diário só barra a resposta ao lead
+        // (mais abaixo); a classificação manual do modo energia continua.
+        const permissaoRobo = await roboPodeResponder(supabase, session.membro_id, modo);
+        if (!permissaoRobo.ok && permissaoRobo.motivo !== "limite_diario") break;
 
         // ------------------------------------------------------------------
         // Mensagens enviadas pelo próprio membro (fromMe), manualmente, no
@@ -316,6 +323,16 @@ export async function POST(request: Request) {
               await supabase.from("agente_mensagens").update({ processado: true }).eq("id", leadRowId);
               break;
             }
+          }
+
+          // Limite diário de respostas atingido: a mensagem do lead fica no
+          // histórico (contexto para amanhã), mas o robô não responde — a
+          // conversa segue manual no celular do membro.
+          if (!permissaoRobo.ok) {
+            if (leadRowId) {
+              await supabase.from("agente_mensagens").update({ processado: true }).eq("id", leadRowId);
+            }
+            break;
           }
 
           // No modo energia, cada lead tem uma etapa no funil (conta -> análise

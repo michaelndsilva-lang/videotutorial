@@ -33,3 +33,13 @@ export async function requireMembro(): Promise<CurrentMembro> {
 
   return { ...user, status: data?.status ?? "pendente" };
 }
+
+// Para server actions e rotas: o layout de /membro só esconde a UI de quem não
+// foi aprovado, mas uma server action pode ser chamada direto. Barra no servidor.
+export async function requireMembroAprovado(): Promise<CurrentMembro> {
+  const user = await requireMembro();
+  if (user.status !== "ativo") {
+    throw new Error("Seu acesso à plataforma não está liberado.");
+  }
+  return user;
+}

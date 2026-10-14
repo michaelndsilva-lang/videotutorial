@@ -1,6 +1,6 @@
 "use server";
 
-import { requireMembro } from "@/lib/auth/guards";
+import { requireMembroAprovado } from "@/lib/auth/guards";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { gerarConteudoIA, resolverPromptTemplate } from "@/lib/ai/motor-conteudo";
 import type { ObjetivoConteudo, FormatoConteudo, Json } from "@/lib/types/database.types";
@@ -25,7 +25,7 @@ export type GerarConteudoResultado =
 // ter respondido com sucesso — geração inválida não deve debitar nem ficar
 // registrada (seção 5 do prompt mestre).
 export async function gerarConteudo(input: GerarConteudoInput): Promise<GerarConteudoResultado> {
-  const user = await requireMembro();
+  const user = await requireMembroAprovado();
   const admin = createAdminClient();
   const quantidade = input.quantidade ?? 3;
 

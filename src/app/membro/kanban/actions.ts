@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireMembro } from "@/lib/auth/guards";
+import { requireMembroAprovado } from "@/lib/auth/guards";
 import { createClient } from "@/lib/supabase/server";
 
 export async function createCard(input: {
@@ -10,7 +10,7 @@ export async function createCard(input: {
   telefone?: string;
   observacoes?: string;
 }) {
-  await requireMembro();
+  await requireMembroAprovado();
   const supabase = await createClient();
 
   // O membro pode ter mais de um board (recrutamento / energia); a coluna já
@@ -49,7 +49,7 @@ export async function updateCard(
   id: string,
   input: { nomeLead: string; telefone?: string; observacoes?: string }
 ) {
-  await requireMembro();
+  await requireMembroAprovado();
   const supabase = await createClient();
 
   const { error } = await supabase
@@ -66,7 +66,7 @@ export async function updateCard(
 }
 
 export async function deleteCard(id: string) {
-  await requireMembro();
+  await requireMembroAprovado();
   const supabase = await createClient();
 
   const { error } = await supabase.from("kanban_cards").delete().eq("id", id);
@@ -78,7 +78,7 @@ export async function deleteCard(id: string) {
 // Chamado no fim de um drag-and-drop com o estado final das colunas afetadas
 // (origem e destino), pra persistir tanto a nova coluna quanto a ordem dos cards.
 export async function persistBoardOrder(columns: { colunaId: string; cardIds: string[] }[]) {
-  await requireMembro();
+  await requireMembroAprovado();
   const supabase = await createClient();
 
   for (const col of columns) {
@@ -95,7 +95,7 @@ export async function persistBoardOrder(columns: { colunaId: string; cardIds: st
 }
 
 export async function createColumn(boardId: string, nome: string) {
-  await requireMembro();
+  await requireMembroAprovado();
   const supabase = await createClient();
 
   const { data: existing } = await supabase
@@ -118,7 +118,7 @@ export async function createColumn(boardId: string, nome: string) {
 }
 
 export async function renameColumn(id: string, nome: string) {
-  await requireMembro();
+  await requireMembroAprovado();
   const supabase = await createClient();
 
   const { error } = await supabase.from("kanban_columns").update({ nome }).eq("id", id);
@@ -128,7 +128,7 @@ export async function renameColumn(id: string, nome: string) {
 }
 
 export async function deleteColumn(id: string) {
-  await requireMembro();
+  await requireMembroAprovado();
   const supabase = await createClient();
 
   const { count } = await supabase

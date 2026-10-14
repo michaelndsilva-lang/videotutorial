@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireMembro } from "@/lib/auth/guards";
+import { requireMembroAprovado } from "@/lib/auth/guards";
 import type { TomVozConteudo, NivelExperienciaConteudo } from "@/lib/types/database.types";
 
 export type PerfilConteudoInput = {
@@ -17,7 +17,7 @@ export type PerfilConteudoInput = {
 // Só fica liberado pro motor gerar conteúdo (Fase 3) quando os 6 campos
 // estiverem preenchidos — ver seção 4 do prompt mestre.
 export async function salvarPerfilConteudo(input: PerfilConteudoInput) {
-  const user = await requireMembro();
+  const user = await requireMembroAprovado();
   const supabase = await createClient();
 
   const nomeExibicao = input.nomeExibicao.trim();

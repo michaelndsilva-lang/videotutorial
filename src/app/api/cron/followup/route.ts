@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEvolutionText } from "@/lib/evolution/client";
+import { roboPodeResponder } from "@/lib/acesso/robo";
 
 export const maxDuration = 60;
 
@@ -56,6 +57,11 @@ export async function GET(request: Request) {
         mensagem = config?.prompt_followup?.trim();
       }
       if (!mensagem) continue; // sem follow-up configurado para este modo
+
+      // Fase 0: follow-up também é resposta do robô — exige acesso liberado,
+      // modo permitido e conta no limite diário.
+      const permissao = await roboPodeResponder(supabase, conversa.membro_id, modo);
+      if (!permissao.ok) continue;
 
       // No modo energia, um lead "aguardando_analise" está pausado esperando
       // avaliação manual do membro — um follow-up automático aqui contradiria
