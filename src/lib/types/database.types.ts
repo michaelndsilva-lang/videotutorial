@@ -581,6 +581,60 @@ export type Database = {
           },
         ]
       }
+      lead_consentimentos: {
+        Row: {
+          card_id: string | null
+          created_at: string
+          id: string
+          interesse: string | null
+          ip_hash: string | null
+          membro_id: string
+          nome: string
+          origem: string
+          telefone: string
+          texto_consentimento: string
+        }
+        Insert: {
+          card_id?: string | null
+          created_at?: string
+          id?: string
+          interesse?: string | null
+          ip_hash?: string | null
+          membro_id: string
+          nome: string
+          origem: string
+          telefone: string
+          texto_consentimento: string
+        }
+        Update: {
+          card_id?: string | null
+          created_at?: string
+          id?: string
+          interesse?: string | null
+          ip_hash?: string | null
+          membro_id?: string
+          nome?: string
+          origem?: string
+          telefone?: string
+          texto_consentimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_consentimentos_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "kanban_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_consentimentos_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: false
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
+      }
       materiais: {
         Row: {
           arquivo_path: string | null
@@ -940,6 +994,59 @@ export type Database = {
           video_url?: string | null
         }
         Relationships: []
+      }
+      paginas: {
+        Row: {
+          bio: string
+          created_at: string
+          foto_path: string | null
+          membro_id: string
+          mostrar_energia: boolean
+          mostrar_oportunidade: boolean
+          mostrar_produtos: boolean
+          publicada: boolean
+          slug: string
+          updated_at: string
+          visitas: number
+          whatsapp: string | null
+        }
+        Insert: {
+          bio?: string
+          created_at?: string
+          foto_path?: string | null
+          membro_id: string
+          mostrar_energia?: boolean
+          mostrar_oportunidade?: boolean
+          mostrar_produtos?: boolean
+          publicada?: boolean
+          slug: string
+          updated_at?: string
+          visitas?: number
+          whatsapp?: string | null
+        }
+        Update: {
+          bio?: string
+          created_at?: string
+          foto_path?: string | null
+          membro_id?: string
+          mostrar_energia?: boolean
+          mostrar_oportunidade?: boolean
+          mostrar_produtos?: boolean
+          publicada?: boolean
+          slug?: string
+          updated_at?: string
+          visitas?: number
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paginas_membro_id_fkey"
+            columns: ["membro_id"]
+            isOneToOne: true
+            referencedRelation: "membros"
+            referencedColumns: ["usuario_id"]
+          },
+        ]
       }
       perfil_conteudo: {
         Row: {
@@ -1374,6 +1481,7 @@ export type Database = {
           titulo: string
         }[]
       }
+      registrar_visita_pagina: { Args: { p_slug: string }; Returns: undefined }
     }
     Enums: {
       agente_modo: "recrutamento" | "energia" | "sunne"
