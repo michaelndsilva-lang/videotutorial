@@ -810,6 +810,11 @@ export type Database = {
       }
       lead_consentimentos: {
         Row: {
+          crm_enviado_em: string | null
+          crm_erro: string | null
+          email: string | null
+          url_origem: string | null
+          utm: Json | null
           card_id: string | null
           created_at: string
           id: string
@@ -822,6 +827,11 @@ export type Database = {
           texto_consentimento: string
         }
         Insert: {
+          crm_enviado_em?: string | null
+          crm_erro?: string | null
+          email?: string | null
+          url_origem?: string | null
+          utm?: Json | null
           card_id?: string | null
           created_at?: string
           id?: string
@@ -834,6 +844,11 @@ export type Database = {
           texto_consentimento: string
         }
         Update: {
+          crm_enviado_em?: string | null
+          crm_erro?: string | null
+          email?: string | null
+          url_origem?: string | null
+          utm?: Json | null
           card_id?: string | null
           created_at?: string
           id?: string
@@ -1243,6 +1258,7 @@ export type Database = {
       }
       paginas: {
         Row: {
+          nome_exibicao: string | null
           bio: string
           created_at: string
           foto_path: string | null
@@ -1257,6 +1273,7 @@ export type Database = {
           whatsapp: string | null
         }
         Insert: {
+          nome_exibicao?: string | null
           bio?: string
           created_at?: string
           foto_path?: string | null
@@ -1271,6 +1288,7 @@ export type Database = {
           whatsapp?: string | null
         }
         Update: {
+          nome_exibicao?: string | null
           bio?: string
           created_at?: string
           foto_path?: string | null

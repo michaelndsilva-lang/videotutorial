@@ -35,13 +35,11 @@ export default async function MinhaPaginaPage() {
   const nome = perfil?.nome_exibicao || usuario?.nome_completo || user.email?.split("@")[0] || "";
   const inicial: PaginaInicial = {
     slug: pagina?.slug ?? sugerirSlug(nome),
+    nome: pagina?.nome_exibicao ?? nome,
     bio: pagina?.bio ?? "",
     whatsapp: pagina?.whatsapp ?? perfil?.whatsapp ?? "",
     fotoPath: pagina?.foto_path ?? null,
     fotoUrl: urlFoto(pagina?.foto_path ?? null),
-    mostrarOportunidade: pagina?.mostrar_oportunidade ?? true,
-    mostrarEnergia: pagina?.mostrar_energia ?? true,
-    mostrarProdutos: pagina?.mostrar_produtos ?? true,
     publicada: pagina?.publicada ?? false,
     existe: !!pagina,
   };

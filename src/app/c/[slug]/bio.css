@@ -1,0 +1,141 @@
+/*
+ * Página do consultor (link na bio). Identidade fixa da Atlântica Natural:
+ * preto + dourado da logomarca, independente do tema claro/escuro da
+ * plataforma. Tudo escopado em .bio-page para não vazar para o resto do app.
+ */
+.bio-page {
+  --an-ink: #0d0b07; /* fundo: preto quente da logomarca */
+  --an-surface: #17140d; /* painel do formulário */
+  --an-field: #1f1b12; /* campos */
+  --an-line: #3b3222; /* bordas */
+  --an-gold: #deb042; /* dourado da logomarca */
+  --an-gold-deep: #c4912c; /* dourado do botão pressionado */
+  --an-text: #f4efe4;
+  --an-muted: #b4ac9b;
+  --an-erro: #f3a59c;
+
+  color-scheme: dark;
+  background: var(--an-ink);
+  color: var(--an-text);
+  /* Brilho dourado bem sutil atrás da foto. */
+  background-image: radial-gradient(60rem 28rem at 50% -6rem, rgb(222 176 66 / 0.1), transparent 70%);
+}
+
+.bio-page ::selection {
+  background: rgb(222 176 66 / 0.35);
+}
+
+.bio-serif {
+  font-family: var(--font-bio-serif), Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+.bio-foto {
+  border-radius: 9999px;
+  padding: 3px;
+  background: linear-gradient(150deg, #f1cf72, var(--an-gold) 45%, #8a6420);
+  box-shadow: 0 18px 50px -18px rgb(222 176 66 / 0.45);
+}
+
+.bio-painel {
+  background: var(--an-surface);
+  border: 1px solid var(--an-line);
+  border-radius: 20px;
+}
+
+.bio-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.bio-campo label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+.bio-campo input {
+  height: 3.25rem;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--an-line);
+  background: var(--an-field);
+  padding: 0 1rem;
+  font-size: 1rem; /* 16px: evita o zoom automático do iPhone */
+  color: var(--an-text);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.bio-campo input::placeholder {
+  color: #8f8775;
+}
+.bio-campo input:focus-visible {
+  outline: none;
+  border-color: var(--an-gold);
+  box-shadow: 0 0 0 3px rgb(222 176 66 / 0.25);
+}
+.bio-campo input[aria-invalid="true"] {
+  border-color: var(--an-erro);
+}
+
+.bio-erro {
+  font-size: 0.8125rem;
+  color: var(--an-erro);
+}
+
+.bio-botao {
+  display: inline-flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 12px;
+  background: var(--an-gold);
+  color: #17120a;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  transition: background-color 0.2s, transform 0.1s;
+}
+.bio-botao:hover {
+  background: #e8bd55;
+}
+.bio-botao:active {
+  transform: scale(0.98);
+  background: var(--an-gold-deep);
+}
+.bio-botao:focus-visible {
+  outline: 2px solid var(--an-text);
+  outline-offset: 3px;
+}
+.bio-botao:disabled {
+  cursor: progress;
+  opacity: 0.75;
+}
+
+.bio-check {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  accent-color: var(--an-gold);
+}
+
+.bio-page a:focus-visible,
+.bio-check:focus-visible {
+  outline: 2px solid var(--an-gold);
+  outline-offset: 2px;
+}
+
+/* Uma única entrada orquestrada: logo, foto, nome, texto, formulário. */
+@media (prefers-reduced-motion: no-preference) {
+  .bio-entra {
+    animation: bio-entra 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+  .bio-sucesso {
+    animation: bio-entra 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+@keyframes bio-entra {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}

@@ -1,7 +1,16 @@
 "use server";
 
 import { headers } from "next/headers";
-import { capturarLead, type Interesse, type ResultadoCaptura } from "@/lib/leads/capturar";
+import { after } from "next/server";
+import {
+  capturarLead,
+  normalizarEmail,
+  normalizarTelefoneBR,
+  TEXTO_CONSENTIMENTO_BIO,
+  type Interesse,
+  type ResultadoCaptura,
+} from "@/lib/leads/capturar";
+import { enviarLeadCrmExterno } from "@/lib/leads/crm-externo";
 import { carregarPaginaPublica } from "@/lib/pagina/carregar";
 import { carregarConfigSimulador } from "@/lib/energia/proposta";
 import { carregarProdutoPublico } from "@/lib/catalogo/publico";
@@ -48,6 +57,82 @@ export async function enviarLeadPagina(slug: string, formData: FormData): Promis
     consentiu: formData.get("consentimento") === "on",
     ip,
   });
+}
+
+const UTM_CHAVES = ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"] as const;
+
+// Só guarda a URL se for desta página (o navegador manda; não confiar cegamente).
+function lerOrigem(slug: string, bruto: string) {
+  try {
+    const url = new URL(bruto);
+    if (!url.pathname.startsWith(`/c/${slug}`)) return { urlOrigem: null, utm: null };
+    const utm: Record<string, string> = {};
+    for (const k of UTM_CHAVES) {
+      const v = url.searchParams.get(k);
+      if (v) utm[k] = v.slice(0, 200);
+    }
+    return { urlOrigem: url.toString().slice(0, 1000), utm };
+  } catch {
+    return { urlOrigem: null, utm: null };
+  }
+}
+
+// Formulário "Vamos conversar?" da página principal (link na bio):
+// nome, WhatsApp e e-mail obrigatórios. O lead vai para o Kanban do
+// consultor (CRM da ATL) e, se configurado, também para o CRM externo.
+export async function enviarLeadBio(slug: string, formData: FormData): Promise<ResultadoCaptura> {
+  const armadilha = String(formData.get("empresa") ?? "");
+  const abertoEm = Number(formData.get("t") ?? 0);
+  if (armadilha || !abertoEm || Date.now() - abertoEm < 3000) return { ok: true };
+
+  const pagina = await carregarPaginaPublica(slug);
+  if (!pagina) return { ok: false, erro: "Esta página não está mais disponível." };
+
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || null;
+  const { urlOrigem, utm } = lerOrigem(slug, String(formData.get("url_origem") ?? ""));
+  const nome = String(formData.get("nome") ?? "");
+  const telefone = String(formData.get("telefone") ?? "");
+  const email = String(formData.get("email") ?? "");
+
+  const r = await capturarLead({
+    membroId: pagina.membroId,
+    origem: "pagina",
+    nome,
+    telefone,
+    email,
+    exigirEmail: true,
+    interesse: "negocio",
+    observacao: [
+      "Origem: site apresentação / bio link",
+      utm?.utm_source && `Campanha: ${[utm.utm_source, utm.utm_medium, utm.utm_campaign].filter(Boolean).join(" / ")}`,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    consentiu: formData.get("consentimento") === "on",
+    textoConsentimento: TEXTO_CONSENTIMENTO_BIO,
+    urlOrigem,
+    utm,
+    ip,
+  });
+
+  // CRM externo depois da resposta: o visitante não espera as tentativas.
+  if (r.ok && r.consentimentoId) {
+    const lead = {
+      consentimentoId: r.consentimentoId,
+      nome: nome.trim().slice(0, 80),
+      whatsapp: normalizarTelefoneBR(telefone)!,
+      email: normalizarEmail(email)!,
+      consultorId: pagina.membroId,
+      consultorSlug: pagina.slug,
+      consultorNome: pagina.nome,
+      urlOrigem,
+      utm,
+      recebidoEm: new Date().toISOString(),
+    };
+    after(() => enviarLeadCrmExterno(lead));
+  }
+  return r;
 }
 
 // "Quero aderir" do simulador público: lead de energia com a simulação

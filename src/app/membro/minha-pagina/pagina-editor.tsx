@@ -9,19 +9,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
+import { APRESENTACAO_PADRAO } from "@/lib/pagina/apresentacao";
 import { salvarPagina } from "./actions";
+import { FotoRecorte } from "./foto-recorte";
 
-const FOTO_MAX = 2 * 1024 * 1024;
+// A foto original pode ser grande: o recorte gera um JPG 640x640 leve.
+const FOTO_MAX = 15 * 1024 * 1024;
 
 export type PaginaInicial = {
   slug: string;
+  nome: string;
   bio: string;
   whatsapp: string;
   fotoPath: string | null;
   fotoUrl: string | null;
-  mostrarOportunidade: boolean;
-  mostrarEnergia: boolean;
-  mostrarProdutos: boolean;
   publicada: boolean;
   existe: boolean;
 };
@@ -38,32 +39,35 @@ export function PaginaEditor({
   supabaseUrl: string;
 }) {
   const [slug, setSlug] = useState(inicial.slug);
+  const [nome, setNome] = useState(inicial.nome);
   const [bio, setBio] = useState(inicial.bio);
   const [whatsapp, setWhatsapp] = useState(inicial.whatsapp);
   const [fotoPath, setFotoPath] = useState(inicial.fotoPath);
   const [fotoUrl, setFotoUrl] = useState(inicial.fotoUrl);
-  const [oportunidade, setOportunidade] = useState(inicial.mostrarOportunidade);
-  const [energia, setEnergia] = useState(inicial.mostrarEnergia);
-  const [produtos, setProdutos] = useState(inicial.mostrarProdutos);
   const [publicada, setPublicada] = useState(inicial.publicada);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const [recortando, setRecortando] = useState<File | null>(null);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const urlPublica = `${siteUrl}/c/${inicial.slug}`;
 
-  async function trocarFoto(file: File | null) {
+  function escolherFoto(file: File | null) {
     if (inputRef.current) inputRef.current.value = "";
     if (!file) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
       return toast.error("Use uma foto JPG, PNG ou WEBP.");
     }
-    if (file.size > FOTO_MAX) return toast.error("A foto pode ter até 2 MB.");
+    if (file.size > FOTO_MAX) return toast.error("A foto pode ter até 15 MB.");
+    setRecortando(file);
+  }
+
+  // Recebe a foto já enquadrada (JPG quadrado) e envia ao storage.
+  async function enviarFoto(file: File) {
     setEnviandoFoto(true);
     try {
-      const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-      const path = `${userId}/foto-${crypto.randomUUID()}.${ext}`;
+      const path = `${userId}/foto-${crypto.randomUUID()}.jpg`;
       const supabase = createClient();
       const { error } = await supabase.storage
         .from("avatars")
@@ -71,6 +75,7 @@ export function PaginaEditor({
       if (error) throw new Error(error.message);
       setFotoPath(path);
       setFotoUrl(`${supabaseUrl}/storage/v1/object/public/avatars/${path}`);
+      setRecortando(null);
       toast.success("Foto carregada. Clique em Salvar para usar.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível enviar a foto.");
@@ -84,12 +89,10 @@ export function PaginaEditor({
       try {
         await salvarPagina({
           slug,
+          nome,
           bio,
           whatsapp,
           fotoPath,
-          mostrarOportunidade: oportunidade,
-          mostrarEnergia: energia,
-          mostrarProdutos: produtos,
           publicada,
         });
         toast.success(publicada ? "Página salva e publicada!" : "Página salva (não publicada).");
@@ -117,12 +120,34 @@ export function PaginaEditor({
             type="file"
             accept="image/jpeg,image/png,image/webp"
             className="hidden"
-            onChange={(e) => trocarFoto(e.target.files?.[0] ?? null)}
+            onChange={(e) => escolherFoto(e.target.files?.[0] ?? null)}
           />
           <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={enviandoFoto}>
             {enviandoFoto ? <Loader2 className="size-4 animate-spin" /> : <Camera className="size-4" />}
             {fotoUrl ? "Trocar foto" : "Enviar foto"}
           </Button>
+        </div>
+
+        {recortando && (
+          <FotoRecorte
+            key={`${recortando.name}-${recortando.lastModified}-${recortando.size}`}
+            arquivo={recortando}
+            onCancelar={() => setRecortando(null)}
+            onConfirmar={enviarFoto}
+          />
+        )}
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="nome">Nome na página</Label>
+          <Input
+            id="nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            maxLength={80}
+            autoComplete="name"
+            className="max-w-md"
+          />
+          <span className="text-xs text-muted-foreground">Aparece em destaque abaixo da sua foto.</span>
         </div>
 
         <div className="flex flex-col gap-2">
@@ -146,14 +171,17 @@ export function PaginaEditor({
             value={bio}
             onChange={(e) => setBio(e.target.value)}
             maxLength={400}
-            rows={3}
-            placeholder="Ex.: Mãe, empreendedora e consultora Atlântica Natural há 2 anos. Te ajudo a ter uma renda extra e economizar na conta de luz."
+            rows={6}
+            placeholder={APRESENTACAO_PADRAO}
           />
-          <span className="text-xs text-muted-foreground tabular-nums">{bio.length}/400</span>
+          <span className="text-xs text-muted-foreground">
+            <span className="tabular-nums">{bio.length}/400</span>. Deixe uma linha em branco para separar
+            parágrafos. Vazio, a página usa o texto de exemplo acima.
+          </span>
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="whats">Seu WhatsApp (aparece como botão na página)</Label>
+          <Label htmlFor="whats">Seu WhatsApp</Label>
           <Input
             id="whats"
             value={whatsapp}
@@ -163,25 +191,6 @@ export function PaginaEditor({
             className="w-60"
           />
         </div>
-
-        <fieldset className="flex flex-col gap-2 text-sm">
-          <legend className="mb-1 font-medium">O que aparece na página</legend>
-          {[
-            ["Oportunidade de negócio (com seu link de cadastro)", oportunidade, setOportunidade],
-            ["Economia na conta de luz (energia)", energia, setEnergia],
-            ["Produtos", produtos, setProdutos],
-          ].map(([label, valor, set]) => (
-            <label key={label as string} className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                className="size-4 accent-primary"
-                checked={valor as boolean}
-                onChange={(e) => (set as (v: boolean) => void)(e.target.checked)}
-              />
-              {label as string}
-            </label>
-          ))}
-        </fieldset>
 
         <label className="flex items-start gap-2 rounded-lg border p-3 text-sm">
           <input

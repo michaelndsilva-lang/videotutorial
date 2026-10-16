@@ -1,30 +1,50 @@
 import type { Metadata } from "next";
+import type { CSSProperties } from "react";
 import { notFound } from "next/navigation";
-import { Leaf, MessageCircle, Sparkles, Zap } from "lucide-react";
-import { Logo } from "@/components/logo";
+import { Cormorant_Garamond } from "next/font/google";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { carregarPaginaPublica } from "@/lib/pagina/carregar";
-import { TEXTO_CONSENTIMENTO } from "@/lib/leads/capturar";
-import { LeadForm } from "./lead-form";
-import { carregarCatalogoPublico } from "@/lib/catalogo/publico";
-import { precoBRL } from "@/lib/catalogo/produtos";
+import { APRESENTACAO_PADRAO } from "@/lib/pagina/apresentacao";
+import { BioForm } from "./bio-form";
+import "./bio.css";
+
+// Página do consultor no formato "link na bio": logomarca, foto, nome,
+// apresentação e formulário. O lead cai no Kanban do consultor.
+
+const serif = Cormorant_Garamond({
+  variable: "--font-bio-serif",
+  subsets: ["latin"],
+  weight: ["500", "600"],
+});
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const pagina = await carregarPaginaPublica(slug);
+  if (!pagina) return { title: "Página indisponível", robots: { index: false, follow: false } };
+
+  const titulo = `${pagina.nome} | Atlântica Natural`;
+  const descricao =
+    (pagina.bio || "Conheça os produtos e as oportunidades da Atlântica Natural.").replace(/\s+/g, " ").slice(0, 155);
+  const imagem = pagina.fotoUrl ?? "/atlantica-natural-og.jpg";
   return {
-    title: pagina ? `${pagina.nome} · Consultor(a) Atlântica Natural` : "Página indisponível",
-    description: pagina?.bio || "Fale comigo sobre os produtos e serviços da Atlântica Natural.",
+    title: { absolute: titulo },
+    description: descricao,
     // Escolha do admin (2026-10-14): páginas pessoais fora dos buscadores.
     robots: { index: false, follow: false },
-    openGraph: pagina?.fotoUrl ? { images: [pagina.fotoUrl] } : undefined,
+    icons: { icon: "/atlantica-natural-icon.png", apple: "/atlantica-natural-icon.png" },
+    openGraph: {
+      type: "profile",
+      title: titulo,
+      description: descricao,
+      url: `/c/${pagina.slug}`,
+      siteName: "Atlântica Natural",
+      locale: "pt_BR",
+      images: [imagem],
+    },
+    twitter: { card: pagina.fotoUrl ? "summary" : "summary_large_image", title: titulo, images: [imagem] },
   };
-}
-
-function linkWhats(numero: string, texto: string) {
-  return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
 }
 
 export default async function PaginaPessoal({ params }: Props) {
@@ -37,167 +57,89 @@ export default async function PaginaPessoal({ params }: Props) {
     .rpc("registrar_visita_pagina", { p_slug: slug })
     .then(({ error }) => error && console.error("Falha ao contar visita:", error));
 
-  // Vitrine: destaques primeiro, até 6 produtos.
-  const vitrine = pagina.mostrarProdutos
-    ? (await carregarCatalogoPublico())
-        .slice()
-        .sort((a, b) => Number(b.destaque) - Number(a.destaque))
-        .slice(0, 6)
-    : [];
-
-  const interesses = [
-    ...(pagina.mostrarOportunidade ? (["negocio"] as const) : []),
-    ...(pagina.mostrarEnergia ? (["energia"] as const) : []),
-    ...(pagina.mostrarProdutos ? (["produtos"] as const) : []),
-  ];
+  const paragrafos = (pagina.bio.trim() || APRESENTACAO_PADRAO).split(/\n\s*\n/);
   const iniciais = pagina.nome
     .split(/\s+/)
     .map((p) => p[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
+  const ordem = (i: number) => ({ "--i": i }) as CSSProperties;
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="mx-auto flex max-w-xl flex-col gap-8 px-4 pt-10 pb-16">
-        <header className="flex flex-col items-center gap-4 text-center">
-          {pagina.fotoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={pagina.fotoUrl}
-              alt={pagina.nome}
-              className="size-28 rounded-full object-cover ring-4 ring-amber-500/30"
-            />
-          ) : (
-            <span className="flex size-28 items-center justify-center rounded-full bg-amber-100 text-3xl font-semibold text-amber-800 ring-4 ring-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300">
-              {iniciais}
-            </span>
-          )}
-          <div className="flex flex-col gap-1">
-            <h1 className="font-heading text-2xl font-medium tracking-tight">{pagina.nome}</h1>
-            <p className="text-sm text-amber-700 dark:text-amber-400">Consultor(a) Atlântica Natural</p>
+    <div className={`bio-page ${serif.variable} min-h-[100dvh]`}>
+      <main className="mx-auto flex w-full max-w-[30rem] flex-col items-center px-5 pt-10 pb-14 sm:pt-14">
+        {/* Seção 1: logomarca */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/atlantica-natural-logo.png"
+          alt="Atlântica Natural"
+          width={480}
+          height={585}
+          className="bio-entra h-auto w-[5.5rem] sm:w-24"
+          style={ordem(0)}
+        />
+
+        {/* Seção 2: foto e nome */}
+        <header className="mt-10 flex flex-col items-center gap-5 text-center">
+          <div className="bio-foto bio-entra" style={ordem(1)}>
+            {pagina.fotoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={pagina.fotoUrl}
+                alt={`Foto de ${pagina.nome}`}
+                width={144}
+                height={144}
+                className="size-32 rounded-full border-4 border-[var(--an-ink)] object-cover sm:size-36"
+              />
+            ) : (
+              <span
+                aria-hidden
+                className="bio-serif flex size-32 items-center justify-center rounded-full border-4 border-[var(--an-ink)] bg-[var(--an-surface)] text-4xl font-semibold text-[var(--an-gold)] sm:size-36"
+              >
+                {iniciais}
+              </span>
+            )}
           </div>
-          {pagina.bio && (
-            <p className="max-w-md text-sm whitespace-pre-wrap text-muted-foreground">{pagina.bio}</p>
-          )}
-          {pagina.whatsapp && (
-            <a
-              href={linkWhats(pagina.whatsapp, `Oi, ${pagina.primeiroNome}! Vim pela sua página.`)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
-            >
-              <MessageCircle className="size-4" />
-              Falar no WhatsApp
-            </a>
-          )}
+          <div className="bio-entra flex flex-col gap-1.5" style={ordem(2)}>
+            <h1 className="bio-serif text-[2.375rem] leading-[1.05] font-semibold text-balance sm:text-[2.75rem]">
+              {pagina.nome}
+            </h1>
+            <p className="text-sm text-[var(--an-gold)]">Consultor(a) Atlântica Natural</p>
+          </div>
         </header>
 
-        <section className="flex flex-col gap-3">
-          {pagina.mostrarOportunidade && (
-            <div className="flex gap-3 rounded-2xl border p-4">
-              <Sparkles className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
-              <div className="flex flex-col gap-1">
-                <h2 className="font-medium">Oportunidade de negócio</h2>
-                <p className="text-sm text-muted-foreground">
-                  Mais de 400 produtos e serviços como energia por assinatura e telemedicina. Você
-                  pode vender e construir sua própria equipe, no seu ritmo. Os resultados dependem
-                  da sua dedicação.
-                </p>
-                {pagina.linkRecrutamento && (
-                  <a
-                    href={pagina.linkRecrutamento}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 w-fit text-sm font-medium text-amber-700 underline underline-offset-2 dark:text-amber-400"
-                  >
-                    Fazer meu cadastro
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-          {pagina.mostrarEnergia && (
-            <div className="flex gap-3 rounded-2xl border p-4">
-              <Zap className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
-              <div className="flex flex-col gap-1">
-                <h2 className="font-medium">Economia na conta de luz</h2>
-                <p className="text-sm text-muted-foreground">
-                  Energia por assinatura com desconto sobre o consumo, sem instalar placas e sem
-                  investimento. Sujeito a análise da conta.
-                </p>
-                <a
-                  href={`/c/${pagina.slug}/energia`}
-                  className="mt-1 w-fit text-sm font-medium text-amber-700 underline underline-offset-2 dark:text-amber-400"
-                >
-                  Simular minha economia
-                </a>
-              </div>
-            </div>
-          )}
-          {pagina.mostrarProdutos && (
-            <div className="flex gap-3 rounded-2xl border p-4">
-              <Leaf className="mt-0.5 size-5 shrink-0 text-amber-600 dark:text-amber-400" />
-              <div className="flex flex-col gap-1">
-                <h2 className="font-medium">Produtos</h2>
-                <p className="text-sm text-muted-foreground">
-                  Cosméticos ozonizados, suplementos e perfumaria fina.
-                </p>
-              </div>
-            </div>
-          )}
-          {vitrine.length > 0 && (
-            <div className="flex flex-col gap-3">
-              <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {vitrine.map((p) => (
-                  <li key={p.id}>
-                    <a
-                      href={`/c/${pagina.slug}/produto/${p.id}`}
-                      className="flex h-full flex-col overflow-hidden rounded-xl border transition-colors hover:border-amber-500/60"
-                    >
-                      <div className="aspect-square bg-muted">
-                        {p.capa && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.capa} alt="" loading="lazy" className="h-full w-full object-cover" />
-                        )}
-                      </div>
-                      <div className="flex flex-1 flex-col gap-0.5 p-2.5">
-                        <span className="text-sm leading-tight font-medium">{p.nome}</span>
-                        {p.preco != null && (
-                          <span className="mt-auto text-sm font-semibold tabular-nums">{precoBRL(p.preco)}</span>
-                        )}
-                      </div>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-              <a
-                href={`/c/${pagina.slug}/produtos`}
-                className="w-fit text-sm font-medium text-amber-700 underline underline-offset-2 dark:text-amber-400"
-              >
-                Ver todos os produtos
-              </a>
-            </div>
-          )}
+        {/* Seção 3: apresentação */}
+        <section
+          aria-label="Apresentação"
+          className="bio-entra mt-8 flex max-w-[34ch] flex-col gap-4 text-center text-[1.0625rem] leading-relaxed text-[var(--an-muted)]"
+          style={ordem(3)}
+        >
+          {paragrafos.map((p, i) => (
+            <p key={i} className="whitespace-pre-line">
+              {p}
+            </p>
+          ))}
         </section>
 
-        <section className="flex flex-col gap-4 rounded-2xl border bg-muted/20 p-5">
-          <div className="flex flex-col gap-1">
-            <h2 className="font-heading text-lg font-medium">Quer saber mais?</h2>
-            <p className="text-sm text-muted-foreground">
-              Deixe seu contato e {pagina.primeiroNome} te chama no WhatsApp.
+        {/* Seções 4 e 5: formulário e mensagem após o envio */}
+        <section
+          aria-labelledby="contato-titulo"
+          className="bio-painel bio-entra mt-10 flex w-full flex-col gap-6 p-6 sm:p-8"
+          style={ordem(4)}
+        >
+          <div className="flex flex-col gap-2 text-center">
+            <h2 id="contato-titulo" className="bio-serif text-[1.75rem] leading-tight font-semibold tracking-wide">
+              VAMOS CONVERSAR?
+            </h2>
+            <p className="text-[15px] leading-relaxed text-[var(--an-muted)]">
+              Preencha seus dados para que eu possa entrar em contato com você.
             </p>
           </div>
-          <LeadForm
-            slug={pagina.slug}
-            primeiroNome={pagina.primeiroNome}
-            interesses={interesses.length ? interesses : ["negocio"]}
-            textoConsentimento={TEXTO_CONSENTIMENTO}
-          />
+          <BioForm slug={pagina.slug} />
         </section>
 
-        <footer className="flex flex-col items-center gap-2 text-xs text-muted-foreground">
-          <Logo size="sm" />
+        <footer className="mt-10 text-center text-xs text-[var(--an-muted)]">
           <a href="/privacidade" className="underline underline-offset-2">
             Política de Privacidade
           </a>

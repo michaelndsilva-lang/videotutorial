@@ -9,12 +9,10 @@ const RESERVADOS = new Set(["admin", "membro", "api", "login", "cadastro", "priv
 
 export async function salvarPagina(input: {
   slug: string;
+  nome: string;
   bio: string;
   whatsapp: string;
   fotoPath: string | null;
-  mostrarOportunidade: boolean;
-  mostrarEnergia: boolean;
-  mostrarProdutos: boolean;
   publicada: boolean;
 }) {
   const user = await requireMembroAprovado();
@@ -23,6 +21,9 @@ export async function salvarPagina(input: {
     throw new Error("O endereço precisa ter de 3 a 40 letras minúsculas, números ou hífen.");
   }
   if (RESERVADOS.has(slug)) throw new Error("Esse endereço é reservado. Escolha outro.");
+
+  const nome = input.nome.trim().replace(/\s+/g, " ");
+  if (nome.length < 2 || nome.length > 80) throw new Error("O nome precisa ter de 2 a 80 caracteres.");
 
   const bio = input.bio.trim();
   if (bio.length > 400) throw new Error("A apresentação pode ter até 400 caracteres.");
@@ -43,12 +44,10 @@ export async function salvarPagina(input: {
   const { error } = await supabase.from("paginas").upsert({
     membro_id: user.id,
     slug,
+    nome_exibicao: nome,
     bio,
     whatsapp,
     foto_path: input.fotoPath,
-    mostrar_oportunidade: input.mostrarOportunidade,
-    mostrar_energia: input.mostrarEnergia,
-    mostrar_produtos: input.mostrarProdutos,
     publicada: input.publicada,
   });
   if (error) {

@@ -9,6 +9,18 @@ import type { CardOrigem } from "@/lib/types/database.types";
 export const TEXTO_CONSENTIMENTO =
   "Autorizo o consultor a entrar em contato comigo pelo WhatsApp sobre os produtos e serviços da Atlântica Natural e confirmo que li a Política de Privacidade.";
 
+// Texto do formulário "Vamos conversar?" da página principal (/c/<slug>).
+// Fica gravado no registro do consentimento exatamente como foi exibido.
+export const TEXTO_CONSENTIMENTO_BIO =
+  "Ao enviar seus dados, você declara estar ciente de que suas informações serão utilizadas para responder à sua solicitação e permitir o contato do consultor responsável, conforme nossa Política de Privacidade.";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+export function normalizarEmail(valor: string): string | null {
+  const email = valor.trim().toLowerCase();
+  return email.length <= 254 && EMAIL_RE.test(email) ? email : null;
+}
+
 export type Interesse = "negocio" | "energia" | "produtos";
 
 export const INTERESSE_LABEL: Record<Interesse, string> = {
@@ -33,7 +45,9 @@ function hashIp(ip: string | null) {
   return createHash("sha256").update(`${sal}:${ip}`).digest("hex");
 }
 
-export type ResultadoCaptura = { ok: true } | { ok: false; erro: string };
+export type ResultadoCaptura =
+  | { ok: true; consentimentoId?: string; cardId?: string | null }
+  | { ok: false; erro: string; campo?: "nome" | "telefone" | "email" | "consentimento" };
 
 export async function capturarLead(input: {
   membroId: string;
@@ -44,12 +58,23 @@ export async function capturarLead(input: {
   observacao?: string;
   consentiu: boolean;
   ip: string | null;
+  // Campos do formulário da página principal (opcionais nos demais).
+  email?: string;
+  exigirEmail?: boolean;
+  textoConsentimento?: string;
+  urlOrigem?: string | null;
+  utm?: Record<string, string> | null;
 }): Promise<ResultadoCaptura> {
   const nome = input.nome.trim().slice(0, 80);
   const telefone = normalizarTelefoneBR(input.telefone);
-  if (!nome) return { ok: false, erro: "Informe seu nome." };
-  if (!telefone) return { ok: false, erro: "Informe um WhatsApp válido com DDD." };
-  if (!input.consentiu) return { ok: false, erro: "É preciso autorizar o contato para enviar." };
+  const email = input.email?.trim() ? normalizarEmail(input.email) : null;
+  if (nome.length < 2) return { ok: false, erro: "Informe seu nome completo.", campo: "nome" };
+  if (!telefone) return { ok: false, erro: "Informe um WhatsApp válido com DDD.", campo: "telefone" };
+  if (input.email?.trim() && !email) return { ok: false, erro: "Informe um e-mail válido.", campo: "email" };
+  if (input.exigirEmail && !email) return { ok: false, erro: "Informe seu e-mail.", campo: "email" };
+  if (!input.consentiu) {
+    return { ok: false, erro: "Marque a caixa de ciência para enviar.", campo: "consentimento" };
+  }
 
   const admin = createAdminClient();
   const ipHash = hashIp(input.ip);
@@ -105,7 +130,11 @@ export async function capturarLead(input: {
       .limit(1)
       .maybeSingle();
 
-    const observacoes = [`Interesse: ${INTERESSE_LABEL[input.interesse]}`, input.observacao?.trim()]
+    const observacoes = [
+      `Interesse: ${INTERESSE_LABEL[input.interesse]}`,
+      email && `E-mail: ${email}`,
+      input.observacao?.trim(),
+    ]
       .filter(Boolean)
       .join("\n");
     const { data: card, error } = await admin
@@ -128,17 +157,24 @@ export async function capturarLead(input: {
     cardId = card.id;
   }
 
-  const { error: consentError } = await admin.from("lead_consentimentos").insert({
-    membro_id: input.membroId,
-    card_id: cardId,
-    origem: input.origem,
-    nome,
-    telefone,
-    interesse: input.interesse,
-    texto_consentimento: TEXTO_CONSENTIMENTO,
-    ip_hash: ipHash,
-  });
+  const { data: consentimento, error: consentError } = await admin
+    .from("lead_consentimentos")
+    .insert({
+      membro_id: input.membroId,
+      card_id: cardId,
+      origem: input.origem,
+      nome,
+      telefone,
+      email,
+      interesse: input.interesse,
+      texto_consentimento: input.textoConsentimento ?? TEXTO_CONSENTIMENTO,
+      ip_hash: ipHash,
+      url_origem: input.urlOrigem?.slice(0, 1000) || null,
+      utm: input.utm && Object.keys(input.utm).length ? input.utm : null,
+    })
+    .select("id")
+    .single();
   if (consentError) console.error("Falha ao registrar consentimento:", consentError);
 
-  return { ok: true };
+  return { ok: true, consentimentoId: consentimento?.id, cardId };
 }

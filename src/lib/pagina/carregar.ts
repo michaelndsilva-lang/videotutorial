@@ -31,7 +31,7 @@ export const carregarPaginaPublica = cache(async (slug: string): Promise<PaginaP
   const { data: p } = await admin
     .from("paginas")
     .select(
-      "membro_id, slug, foto_path, bio, whatsapp, mostrar_oportunidade, mostrar_energia, mostrar_produtos, publicada"
+      "membro_id, slug, nome_exibicao, foto_path, bio, whatsapp, mostrar_oportunidade, mostrar_energia, mostrar_produtos, publicada"
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -44,7 +44,7 @@ export const carregarPaginaPublica = cache(async (slug: string): Promise<PaginaP
   ]);
   if (membro?.status !== "ativo") return null;
 
-  const nome = perfil?.nome_exibicao || usuario?.nome_completo || "Consultor(a) Atlântica Natural";
+  const nome = p.nome_exibicao || perfil?.nome_exibicao || usuario?.nome_completo || "Consultor(a) Atlântica Natural";
   return {
     membroId: p.membro_id,
     slug: p.slug,
