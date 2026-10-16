@@ -28,6 +28,7 @@
 .bio-serif {
   font-family: var(--font-bio-serif), Georgia, serif;
   letter-spacing: -0.01em;
+  font-variant-numeric: lining-nums; /* Cormorant usa algarismos "baixos" por padrão */
 }
 
 .bio-foto {
@@ -121,6 +122,113 @@
 .bio-check:focus-visible {
   outline: 2px solid var(--an-gold);
   outline-offset: 2px;
+}
+
+/* ---- Página de captura ---- */
+
+html:has(.bio-page) {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html:has(.bio-page) {
+    scroll-behavior: auto;
+  }
+}
+
+.captura-video {
+  box-shadow:
+    0 0 0 1px rgb(222 176 66 / 0.35),
+    0 30px 80px -30px rgb(222 176 66 / 0.35);
+}
+
+/* Botão de play: dourado da marca com um anel que chama o primeiro clique. */
+.captura-play {
+  background: linear-gradient(150deg, #f1cf72, var(--an-gold) 50%, #b8862b);
+  box-shadow:
+    0 0 0 10px rgb(222 176 66 / 0.18),
+    0 12px 40px rgb(0 0 0 / 0.5);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .captura-play {
+    animation: captura-anel 2.4s ease-out infinite;
+  }
+  @keyframes captura-anel {
+    0% {
+      box-shadow:
+        0 0 0 0 rgb(222 176 66 / 0.45),
+        0 12px 40px rgb(0 0 0 / 0.5);
+    }
+    70%,
+    100% {
+      box-shadow:
+        0 0 0 22px rgb(222 176 66 / 0),
+        0 12px 40px rgb(0 0 0 / 0.5);
+    }
+  }
+}
+
+/* Capa do guia como um livro levemente inclinado. */
+.captura-guia {
+  transform: rotate(-4deg);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  filter: drop-shadow(0 30px 40px rgb(0 0 0 / 0.6)) drop-shadow(0 0 1px rgb(222 176 66 / 0.5));
+}
+.captura-guia:hover,
+.captura-guia:focus-visible {
+  transform: rotate(0deg) scale(1.02);
+}
+
+.captura-botao-linha {
+  min-height: 3.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--an-gold);
+  padding: 0 1.4rem;
+  font-weight: 600;
+  color: var(--an-gold);
+  transition: background-color 0.2s, color 0.2s;
+}
+.captura-botao-linha:hover {
+  background: var(--an-gold);
+  color: #17120a;
+}
+
+.captura-painel-ouro {
+  border-radius: 20px;
+  border: 1px solid rgb(222 176 66 / 0.45);
+  background:
+    radial-gradient(30rem 16rem at 100% 0%, rgb(222 176 66 / 0.16), transparent 70%),
+    var(--an-surface);
+}
+
+.captura-oferta {
+  border-radius: 24px;
+  border: 1px solid rgb(222 176 66 / 0.55);
+  background:
+    radial-gradient(40rem 20rem at 0% 0%, rgb(222 176 66 / 0.18), transparent 65%),
+    linear-gradient(180deg, #1c170d, var(--an-surface));
+}
+
+.captura-faq {
+  border-radius: 14px;
+  border: 1px solid var(--an-line);
+  background: var(--an-surface);
+}
+.captura-faq summary::-webkit-details-marker {
+  display: none;
+}
+.captura-faq summary:focus-visible {
+  outline: 2px solid var(--an-gold);
+  outline-offset: -2px;
+  border-radius: 14px;
+}
+
+.captura-cta-fixo {
+  background: linear-gradient(180deg, transparent, var(--an-ink) 35%);
+  transform: translateY(110%);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.captura-cta-fixo.is-visivel {
+  transform: translateY(0);
 }
 
 /* Uma única entrada orquestrada: logo, foto, nome, texto, formulário. */
