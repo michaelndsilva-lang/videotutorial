@@ -57,6 +57,7 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/admin/mural", label: "Mural", icon: Megaphone },
       { href: "/admin/treinamentos", label: "ATL FLIX", icon: Clapperboard },
       { href: "/admin/mentor", label: "Mentor IA", icon: GraduationCap },
+      { href: "/admin/protocolo", label: "CRIAÇÃO DE PROTOCOLO", icon: FlaskConical },
       { href: "/admin/materiais", label: "Materiais", icon: FolderOpen },
       { href: "/admin/configuracoes", label: "Config.", icon: Settings },
     ],
