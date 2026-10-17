@@ -21,6 +21,7 @@ import {
   LifeBuoy,
   UsersRound,
   Megaphone,
+  FlaskConical,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ const NAV_CONFIG: Record<"admin" | "membro", { label: string; items: NavItem[] }
       { href: "/membro/ajuda", label: "Ajuda", icon: LifeBuoy },
       { href: "/membro/treinamentos", label: "ATL FLIX", icon: Clapperboard },
       { href: "/membro/mentor", label: "Mentor IA", icon: GraduationCap },
+      { href: "/membro/protocolo", label: "CRIAÇÃO DE PROTOCOLO", icon: FlaskConical },
       { href: "/membro/materiais", label: "Materiais", icon: FolderOpen },
       { href: "/membro/perfil", label: "Perfil", icon: UserCircle },
     ],
